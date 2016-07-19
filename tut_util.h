@@ -17,5 +17,6 @@ void Tut_ErrorExit(const char* fmt, ...);
 
 void* Tut_Malloc(size_t size);
 void Tut_Free(void* ptr);
+char* Tut_Strdup(const char* string);
 
 #endif

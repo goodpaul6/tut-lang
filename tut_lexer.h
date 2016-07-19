@@ -9,16 +9,20 @@
 
 typedef struct
 {
-	char* source;
-	
-	const char* lineStart;
-	const char* current;
+	char* source;							// Stores the source code being lexed
 
-	int last;
-	char lexeme[TUT_MAX_LEXEME_LENGTH];
-	double number;
-	
-	TutToken curTok;
+	const char* lineStart;					// Points to the start of the current line
+	const char* current;					// Points to the current location in the source code
+
+	int last;								// Last character read from stream
+	char lexeme[TUT_MAX_LEXEME_LENGTH];		// Stores the token as a string (ex. if the token was
+											// a string "hello world", this would contain
+											// that string)
+											
+	double number;							// Stores the numerical value of the token if the token is
+											// TUT_TOK_NUMBER
+
+	TutToken curTok;						// Last token (set by Tut_GetToken)
 } TutLexer;
 
 void Tut_InitLexer(TutLexer* lexer, const char* source);

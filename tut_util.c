@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "tut_util.h"
 
@@ -26,4 +27,13 @@ void* Tut_Malloc(size_t size)
 void Tut_Free(void* ptr)
 {
 	free(ptr);
+}
+
+char* Tut_Strdup(const char* string)
+{
+	size_t length = strlen(string);
+	char* str = Tut_Malloc(length + 1);
+	strcpy(str, string);
+	
+	return str;
 }

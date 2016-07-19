@@ -109,6 +109,8 @@ static TutToken GetToken(TutLexer* lexer)
 		}
 		
 		lexer->lexeme[i] = '\0';
+		lexer->number = strtod(lexer->lexeme, NULL);
+		
 		return TUT_TOK_NUMBER;
 	}
 	
