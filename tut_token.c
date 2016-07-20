@@ -22,6 +22,8 @@ static const char* Names[TUT_TOK_COUNT] =
 	"{",
 	"}",
 	
+	":",
+	";",
 	",",
 	
 	"+",

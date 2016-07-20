@@ -47,12 +47,10 @@ void Tut_ListPrepend(TutList* list, void* value)
 	++list->length;
 }
 
-void Tut_ListDestroy(TutList* list)
+void Tut_DestroyList(TutList* list)
 {
-	TUT_LIST_EACH(node, list)
-	{
+	TUT_LIST_EACH(node, *list)
 		Tut_Free(node);
-	}
 	
 	list->length = 0;
 	list->head = list->tail = NULL;

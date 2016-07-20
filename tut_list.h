@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define TUT_LIST_EACH(nodeName, list) for(TutListNode* nodeName = (list)->head; nodeName; nodeName = nodeName->next)
+#define TUT_LIST_EACH(nodeName, list) for(TutListNode* nodeName = (list).head; nodeName; nodeName = nodeName->next)
 
 typedef struct TutListNode
 {
@@ -23,6 +23,6 @@ void Tut_InitList(TutList* list);
 void Tut_ListAppend(TutList* list, void* value);
 void Tut_ListPrepend(TutList* list, void* value);
 
-void Tut_ListDestroy(TutList* list);
+void Tut_DestroyList(TutList* list);
 
 #endif

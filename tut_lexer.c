@@ -171,6 +171,18 @@ static TutToken GetToken(TutLexer* lexer)
 		return TUT_TOK_CLOSECURLY;
 	}
 	
+	if(lexer->last == ':')
+	{
+		lexer->last = GetChar(lexer);
+		return TUT_TOK_COLON;
+	}
+	
+	if(lexer->last == ';')
+	{
+		lexer->last = GetChar(lexer);
+		return TUT_TOK_SEMICOLON;
+	}
+	
 	if(lexer->last == ',')
 	{
 		lexer->last = GetChar(lexer);
