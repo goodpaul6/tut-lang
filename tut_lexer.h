@@ -6,14 +6,14 @@
 #include <stdio.h>
 
 #include "tut_token.h"
+#include "tut_lexercontext.h"
 
 typedef struct
 {
 	char* source;							// Stores the source code being lexed
-
-	const char* lineStart;					// Points to the start of the current line
-	const char* current;					// Points to the current location in the source code
-
+	
+	TutLexerContext context;
+	
 	int last;								// Last character read from stream
 	char lexeme[TUT_MAX_LEXEME_LENGTH];		// Stores the token as a string (ex. if the token was
 											// a string "hello world", this would contain

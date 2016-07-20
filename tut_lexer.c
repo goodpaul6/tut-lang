@@ -9,8 +9,11 @@
 static void InitLexer(TutLexer* lexer, char* source)
 {
 	lexer->source = source;	
-	lexer->lineStart = lexer->source;
-	lexer->current = lexer->source;
+	
+	lexer->context.filename = NULL;
+	lexer->context.line = 1;
+	lexer->context.lineStart = source;
+	lexer->context.current = source;
 	
 	lexer->curTok = TUT_TOK_ERROR;
 
@@ -47,8 +50,8 @@ static int GetChar(TutLexer* lexer)
 {
 	if(*lexer->current)
 	{
-		int c = (int)(*lexer->current);
-		lexer->current++;
+		int c = (int)(*lexer->context.current);
+		lexer->context.current++;
 		return c;
 	}
 	
@@ -61,7 +64,11 @@ static TutToken GetToken(TutLexer* lexer)
 	{
 		int prev = lexer->last;
 		lexer->last = GetChar(lexer);
-		if(prev == '\n') lexer->lineStart = lexer->current;
+		if(prev == '\n')
+		{ 
+			++lexer->context.line;
+			lexer->context.lineStart = lexer->current;
+		}
 	}
 	
 	if(isalpha(lexer->last) || lexer->last == '_')

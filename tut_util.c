@@ -24,6 +24,14 @@ void* Tut_Malloc(size_t size)
 	return mem;
 }
 
+void* Tut_Calloc(size_t num, size_t size)
+{
+	void* mem = calloc(num, size);
+	if(!mem)
+		Tut_ErrorExit("Out of memory!\n");
+	return mem;
+}
+
 void Tut_Free(void* ptr)
 {
 	free(ptr);

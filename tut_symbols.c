@@ -4,11 +4,11 @@
 #include "tut_symbols.h"
 #include "tut_util.h"
 
-static TutFuncDecl* MakeFuncDecl(const char* name, TutTypetag* typetag)
+static TutFuncDecl* MakeFuncDecl(const char* name)
 {
 	TutFuncDecl* decl = Tut_Malloc(sizeof(TutFuncDecl));
 	
-	decl->typetag = typetag;
+	decl->returnType = NULL;
 	decl->parent = NULL;
 	
 	decl->index = -1;

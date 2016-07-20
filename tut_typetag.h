@@ -15,16 +15,19 @@ typedef enum
 	TUT_TYPETAG_COUNT
 } TutTypetagType;
 
-typedef struct
+typedef struct TutTypetag
 {
 	TutTypetagType type;
 	
-	struct
+	union
 	{
-		TutBool defined;
-		char* name;
-		TutList members;
-	} user;
+		struct
+		{
+			TutBool defined;
+			char* name;
+			TutList members;
+		} user;
+	};
 } TutTypetag;
 
 void Tut_InitTypetag(TutTypetag* tag, TutTypetagType type);

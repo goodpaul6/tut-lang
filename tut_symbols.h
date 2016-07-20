@@ -6,7 +6,7 @@
 
 typedef struct TutFuncDecl
 {
-	TutTypetag* typetag;
+	TutTypetag* returnType;
 	struct TutFuncDecl* parent;
 	
 	int index;
@@ -37,7 +37,7 @@ typedef struct
 
 void Tut_InitSymbolTable(TutSymbolTable* table);
 
-TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name, TutTypetag* typetag);
+TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name);
 TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutTypetag* typetag);
 TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutTypetag* typetag);
 
@@ -52,7 +52,7 @@ void Tut_PopCurFuncDecl(TutSymbolTable* table);
 TutVarDecl* Tut_GetVarDecl(TutSymbolTable* table, const char* name, int scope);
 TutFuncDecl* Tut_GetFuncDecl(TutSymbolTable* table, const char* name);
 
-// NOTE: If a usertype by the name cannot be found, an empty version of the type
+// NOTE: If a usertype by the name cannot be found, an undefined version of the type
 // is created and will automatically be filled when the type is defined
 TutTypetag* Tut_RegisterType(TutSymbolTable* table, const char* name);
 
