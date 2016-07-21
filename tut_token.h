@@ -3,7 +3,8 @@
 
 typedef enum
 {
-	TUT_TOK_NUMBER,
+	TUT_TOK_INT,
+	TUT_TOK_FLOAT,
 	TUT_TOK_STRING,
 	TUT_TOK_IDENT,
 	

@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <assert.h>
+#include <string.h>
 
 #include "tut_symbols.h"
 #include "tut_util.h"
@@ -57,7 +58,7 @@ TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
 	if(table->curFunc)
 		Tut_ListAppend(&table->curFunc->nestedFunctions, decl);
 	else
-		Tut_ListAppend(&table->functions);
+		Tut_ListAppend(&table->functions, decl);
 	
 	return decl;
 }

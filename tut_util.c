@@ -32,6 +32,14 @@ void* Tut_Calloc(size_t num, size_t size)
 	return mem;
 }
 
+void* Tut_Realloc(void* mem, size_t newSize)
+{
+	void* mem = realloc(mem, newSize);
+	if(!mem)
+		Tut_ErrorExit("Out of memory!\n");
+	return mem;
+}
+
 void Tut_Free(void* ptr)
 {
 	free(ptr);

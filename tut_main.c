@@ -1,26 +1,15 @@
-#include "tut_lexer.h"
-#include "tut_util.h"
+#include "tut_module.h"
+#include "tut_expr.h"
 
 int main(int argc, char** argv)
 {
 	if(argc == 2)
 	{
-		FILE* file = fopen(argv[1], "rb");
-		if(!file)
-			Tut_ErrorExit("Failed to open file '%s' for reading.\n", argv[1]);
+		TutModule module;
 		
-		TutLexer lexer;
-		Tut_InitLexerFromFile(&lexer, file);
+		Tut_InitModuleFromFile(&module, argv[1]);
+		Tut_DestroyModule(&module);
 		
-		fclose(file);
-		
-		while(lexer.curTok != TUT_TOK_EOF)
-		{
-			Tut_GetToken(&lexer);
-			printf("%s\n", Tut_TokenRepr(lexer.curTok));
-		}
-		
-		Tut_DestroyLexer(&lexer);
 		return TUT_SUCCESS;
 	}
 	

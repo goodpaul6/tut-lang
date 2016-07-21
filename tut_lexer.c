@@ -48,7 +48,7 @@ void Tut_InitLexerFromFile(TutLexer* lexer, FILE* file)
 
 static int GetChar(TutLexer* lexer)
 {
-	if(*lexer->current)
+	if(*lexer->context.current)
 	{
 		int c = (int)(*lexer->context.current);
 		lexer->context.current++;
@@ -67,7 +67,7 @@ static TutToken GetToken(TutLexer* lexer)
 		if(prev == '\n')
 		{ 
 			++lexer->context.line;
-			lexer->context.lineStart = lexer->current;
+			lexer->context.lineStart = lexer->context.current;
 		}
 	}
 	
@@ -118,7 +118,9 @@ static TutToken GetToken(TutLexer* lexer)
 		lexer->lexeme[i] = '\0';
 		lexer->number = strtod(lexer->lexeme, NULL);
 		
-		return TUT_TOK_NUMBER;
+		if(hasRadix)
+			return TUT_TOK_FLOAT;
+		return TUT_TOK_INT;
 	}
 	
 	if(lexer->last == '"')

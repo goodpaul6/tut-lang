@@ -8,7 +8,8 @@ typedef enum
 {
 	TUT_EXPR_BLOCK,
 	
-	TUT_EXPR_NUM,
+	TUT_EXPR_INT,
+	TUT_EXPR_FLOAT,
 	TUT_EXPR_STR,
 	TUT_EXPR_VAR,
 	
@@ -33,7 +34,8 @@ typedef struct TutExpr
 	{
 		TutList blockList;
 		
-		double number;
+		int intVal;
+		float floatVal;
 		char* string;
 	
 		struct

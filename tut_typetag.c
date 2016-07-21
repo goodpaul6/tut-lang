@@ -45,8 +45,8 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 	
 	if(a->type == TUT_TYPETAG_USERTYPE)
 	{
-		if(a->name && b->name)
-			return strcmp(a->name, b->name) == 0;
+		if(a->user.name && b->user.name)
+			return strcmp(a->user.name, b->user.name) == 0;
 		return TUT_FALSE;
 	}
 	
