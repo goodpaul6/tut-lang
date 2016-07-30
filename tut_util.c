@@ -53,3 +53,12 @@ char* Tut_Strdup(const char* string)
 	
 	return str;
 }
+
+int Tut_Strncmp(const char* a, const char* b, uint32_t length)
+{
+	uint32_t i = 0;
+	while((*a++ == *b++) && i < length)
+		++i;
+	
+	return *a - *b;
+}

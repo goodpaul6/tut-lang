@@ -5,7 +5,7 @@
 
 typedef struct
 {
-	char value;
+	int8_t value;
 } TutBoolObject;
 
 typedef struct

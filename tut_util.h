@@ -23,5 +23,6 @@ void* Tut_Realloc(void* mem, size_t newSize);
 
 void Tut_Free(void* ptr);
 char* Tut_Strdup(const char* string);
+int Tut_Strncmp(const char* a, const char* b, uint32_t length);
 
 #endif

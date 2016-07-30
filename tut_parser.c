@@ -77,7 +77,7 @@ static TutExpr* ParseVar(TutModule* module)
 	
 	Tut_GetToken(&module->lexer);
 	
-	exp->varx.varDecl = Tut_DeclareVariable(&module->symbolTable, exp->varx.name, ParseType(module));
+	exp->varx.decl = Tut_DeclareVariable(&module->symbolTable, exp->varx.name, ParseType(module));
 	
 	return exp;
 }
@@ -87,7 +87,7 @@ static TutExpr* ParseIdent(TutModule* module)
 	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_VAR, &module->lexer.context);
 				
 	exp->varx.name = Tut_Strdup(module->lexer.lexeme);
-	exp->varx.varDecl = Tut_GetVarDecl(&module->symbolTable, module->lexer.lexeme, -1);
+	exp->varx.decl = Tut_GetVarDecl(&module->symbolTable, module->lexer.lexeme, -1);
 	
 	Tut_GetToken(&module->lexer);
 	

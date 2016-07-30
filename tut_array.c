@@ -105,6 +105,11 @@ void Tut_ArrayTraverse(TutArray* array, Tut_ArrayTraverser traverser, void* data
 		traverser(data, &array->data[i * array->datumSize]);
 }
 
+void* Tut_GetArraySortData(TutArray* array)
+{
+	return ArraySortData;
+}
+
 void Tut_ArraySort(TutArray* array, Tut_ArrayComparator comparator, void* data)
 {
 	ArraySortData = data;

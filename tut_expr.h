@@ -41,7 +41,7 @@ typedef struct TutExpr
 		struct
 		{
 			char* name;
-			TutVarDecl* varDecl;
+			TutVarDecl* decl;
 		} varx;
 		
 		struct
