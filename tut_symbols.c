@@ -83,7 +83,7 @@ TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutType
 	
 	if(table->curFunc)
 	{
-		decl->index = -(table->curFunc->args.length + 1);
+		decl->index = -((int)table->curFunc->args.length + 1);
 		decl->scope = table->curScope;
 		
 		Tut_ListAppend(&table->curFunc->locals, decl);

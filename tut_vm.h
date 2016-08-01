@@ -2,42 +2,59 @@
 #define TUT_VM_H
 
 #define TUT_VM_MAX_CODE_SIZE	4096
-#define TUT_VM_MAX_DATA_SIZE	4096
-#define TUT_VM_MAX_STACK_SIZE	2048
+#define TUT_VM_MAX_GLOBALS		256	
+#define TUT_VM_STACK_SIZE		256
 
-#include <stdint.h>
+#include "tut_objects.h"
+#include "tut_array.h"
+
+typedef struct
+{
+	uint8_t nargs;
+	int32_t pc, fp;
+} TutReturnFrame;
 
 typedef struct
 {
 	int32_t sp, pc, fp;
 	
+	TutArray integers;
+	TutArray floats;
+	TutArray strings;
+	TutArray functionPcs;
+
+	TutArray returnFrames;
+
+	uint32_t codeSize;
 	uint8_t code[TUT_VM_MAX_CODE_SIZE];
-	uint8_t data[TUT_VM_MAX_DATA_SIZE];
-	uint8_t stack[TUT_VM_MAX_STACK_SIZE];
+
+	TutObject globals[TUT_VM_MAX_GLOBALS];
+	TutObject stack[TUT_VM_STACK_SIZE];
 } TutVM;
 
 void Tut_InitVM(TutVM* vm);
 
-void Tut_Push(TutVM* vm, const void* value, uint32_t size);
-void Tut_Pop(TutVM* vm, void* value, uint32_t size);
+void Tut_Push(TutVM* vm, const TutObject* value);
+void Tut_Pop(TutVM* vm, TutObject* object);
 
 void Tut_PushBool(TutVM* vm, TutBool value);
 void Tut_PushInt(TutVM* vm, int32_t value);
 void Tut_PushFloat(TutVM* vm, float value);
 
 // NOTE: Does not make a copy of the string
-void Tut_PushCString(TutVM* vm, uint32_t length, const char* string);
+void Tut_PushCString(TutVM* vm, const char* string);
 
 // NOTE: Makes a copy of string
-void Tut_PushString(TutVM* vm, uint32_t length, const char* string);
+void Tut_PushString(TutVM* vm, const char* string);
 
 TutBool Tut_PopBool(TutVM* vm);
 int32_t Tut_PopInt(TutVM* vm);
 float Tut_PopFloat(TutVM* vm);
-TutCStringObject Tut_PopCString(TutVM* vm);
-TutStringObject TutPopString(TutVM* vm);
+const char* Tut_PopCString(TutVM* vm);
+char* TutPopString(TutVM* vm);
 
 void Tut_ExecuteCycle(TutVM* vm);
+
 void Tut_DestroyVM(TutVM* vm);
 
 #endif

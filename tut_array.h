@@ -25,6 +25,8 @@ void Tut_ArrayReserve(TutArray* array, size_t capacity);
 void Tut_ArrayResize(TutArray* array, size_t length, const void* init);
 
 void* Tut_ArrayGet(TutArray* array, size_t index);
+#define TUT_ARRAY_GET_VALUE(array, index, type) (*(type*)Tut_ArrayGet((array), (index)))
+
 void Tut_ArraySet(TutArray* array, size_t index, const void* value);
 
 void Tut_ArrayPush(TutArray* array, const void* value);

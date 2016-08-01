@@ -1,9 +1,9 @@
+#include <string.h>
+
 #include "tut_buf.h"
 
-#define READ_VALUE_FUNCTION(type, funcName) static type funcName(const uint8_t* buf, uint32_t pos) \
+#define READ_VALUE_FUNCTION(type, funcName) type funcName(const uint8_t* buf, uint32_t pos) \
 { \
-	assert(pos >= 0); \
-	\
 	union \
 	{ \
 		uint8_t bytes[sizeof(type)]; \
@@ -24,10 +24,8 @@ READ_VALUE_FUNCTION(float, Tut_ReadFloat)
 
 #undef READ_VALUE_FUNCTION
 
-#define WRITE_VALUE_FUNCTION(type, funcName) static void funcName(uint8_t* buf, uint32_t pos, type value) \
+#define WRITE_VALUE_FUNCTION(type, funcName) void funcName(uint8_t* buf, uint32_t pos, type value) \
 { \
-	assert(pos >= 0); \
-	\
 	union \
 	{ \
 		uint8_t bytes[sizeof(type)]; \

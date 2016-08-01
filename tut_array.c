@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "tut_array.h"
@@ -54,13 +56,13 @@ void Tut_ArrayResize(TutArray* array, size_t length, const void* init)
 void* Tut_ArrayGet(TutArray* array, size_t index)
 {
 	assert(index >= 0 && index < array->length);
-	return &array->data[i * array->datumSize];
+	return &array->data[index * array->datumSize];
 }
 
 void Tut_ArraySet(TutArray* array, size_t index, const void* value)
 {
 	assert(index >= 0 && index < array->length);
-	memcpy(&array->data[i * array->datumSize], value, array->datumSize);
+	memcpy(&array->data[index * array->datumSize], value, array->datumSize);
 }
 
 void Tut_ArrayPush(TutArray* array, const void* value)
@@ -81,7 +83,7 @@ void Tut_ArrayPush(TutArray* array, const void* value)
 void Tut_ArrayPop(TutArray* array, void* value)
 {
 	assert(array->length > 0);
-	memcpy(&array->data[(--array->length) * array->datumSize], value, array->datumSize);
+	memcpy(value, &array->data[(--array->length) * array->datumSize], array->datumSize);
 }
 
 void Tut_ArrayInsert(TutArray* array, size_t index, const void* value)
@@ -95,7 +97,7 @@ void Tut_ArrayInsert(TutArray* array, size_t index, const void* value)
 	}
 	
 	memmove(&array->data[(index + 1) * array->datumSize], &array->data[index * array->datumSize], (array->length - index) * array->datumSize);
-	memcpy(&vector->data[index * array->datumSize], value, array->datumSize);
+	memcpy(&array->data[index * array->datumSize], value, array->datumSize);
 	array->length += 1;
 }
 

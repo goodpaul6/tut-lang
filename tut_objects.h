@@ -3,31 +3,15 @@
 
 #include <stdint.h>
 
-typedef struct
-{
-	int8_t value;
-} TutBoolObject;
+#include "tut_util.h"
 
-typedef struct
+typedef union
 {
-	int32_t value;
-} TutIntObject;
-
-typedef struct
-{
-	float value;
-} TutFloatObject;
-
-typedef struct
-{
-	uint32_t length;
-	char* data;
-} TutStringObject;
-
-typedef struct
-{
-	uint32_t length;
-	const char* data;
-} TutCStringObject;
+	TutBool bv;
+	int32_t iv;
+	float fv;
+	const char* csv;
+	char* sv;
+} TutObject;
 
 #endif

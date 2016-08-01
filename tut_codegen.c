@@ -1,170 +1,142 @@
-#include "tut_codegen.h"
-#include "tut_buf.h"
-#include "tut_util.h"
+#include <string.h>
 
-void Tut_InitCodegen(TutCodegen* gen)
+#include "tut_opcodes.h"
+#include "tut_buf.h"
+#include "tut_codegen.h"
+
+void Tut_EmitOp(TutVM* vm, uint8_t op)
 {
-	gen->numFunctions = 0;
-	gen->numGlobals = 0;
-	
-	gen->numIntegers = 0;
-	gen->numFloats = 0;
-	gen->numStrings = 0;
-	
-	gen->dataLength = 0;
-	gen->codeLength = 0;
+	vm->code[vm->codeSize++] = op;
 }
 
-static void CompileAccess(TutCodegen* gen, TutVarDecl* decl)
+void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index)
 {
-	if(decl->scope == 0)
+	if (global)
+		Tut_EmitOp(vm, TUT_OP_GET_GLOBAL);
+	else
+		Tut_EmitOp(vm, TUT_OP_GET_LOCAL);
+	
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
+void Tut_EmitSet(TutVM* vm, TutBool global, int32_t index)
+{
+	if (global)
+		Tut_EmitOp(vm, TUT_OP_SET_GLOBAL);
+	else
+		Tut_EmitOp(vm, TUT_OP_SET_LOCAL);
+
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
+void Tut_EmitPushInt(TutVM* vm, int32_t value)
+{
+	Tut_EmitOp(vm, TUT_OP_PUSH_INT);
+
+	int32_t index = -1;
+
+	for (int i = 0; i < vm->integers.length; ++i)
 	{
-		switch(decl->typetag->type)
+		if (TUT_ARRAY_GET_VALUE(&vm->integers, i, int) == value)
 		{
-			case TUT_TYPETAG_BOOL: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_BOOL; break;
-			case TUT_TYPETAG_INT: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_BOOL; break;
-			case TUT_TYPETAG_FLOAT: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_BOOL; break;
-			case TUT_TYPETAG_CSTR: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_CSTR; break;
-			case TUT_TYPETAG_STR: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_; break;
-			
+			index = i;
+			break;
 		}
 	}
-}
 
-void Tut_CompileValueExpr(TutSymbolTable* table, TutCodegen* gen, TutExpr* exp)
-{
-	switch(exp->type)
+	if (index < 0)
 	{
-		case TUT_EXPR_INT:
-		{
-			TutBool found = TUT_FALSE;
-			uint32_t offset;
-			
-			for(int i = 0; i < gen->numIntegers; ++i)
-			{
-				int32_t value = Tut_ReadInt32(gen->data, gen->integerOffsets[i]);
-				if(exp->intVal == value)
-				{
-					found = TUT_TRUE;
-					offset = gen->integerOffsets[i];
-					break;
-				}
-			}
-			
-			if(!found)
-			{
-				offset = gen->dataLength;
-				gen->integerOffsets[gen->numIntegers++] = offset;
-				
-				Tut_WriteInt32(gen->data, offset, exp->intVal);
-				gen->dataLength += 4;
-			}
-			
-			gen->code[gen->codeLength++] = TUT_OP_PUSH_INT;
-			Tut_WriteUint32(gen->code, gen->codeLength, offset);
-			gen->codeLength += 4;
-		} break;
-		
-		case TUT_EXPR_FLOAT:
-		{
-			TutBool found = TUT_FALSE;
-			uint32_t offset;
-			
-			for(int i = 0; i < gen->numFloats; ++i)
-			{
-				float value = Tut_ReadFloat(gen->data, gen->integerOffsets[i]);
-				if(exp->floatVal == value)
-				{
-					found = TUT_TRUE;
-					offset = gen->floatOffsets[i];
-					break;
-				}
-			}
-			
-			if(!found)
-			{
-				offset = gen->dataLength;
-				gen->floatOffsets[gen->numFloats++] = offset;
-				
-				Tut_WriteFloat(gen->data, offset, exp->floatVal);
-				gen->dataLength += 4;
-			}
-			
-			gen->code[gen->codeLength++] = TUT_OP_PUSH_FLOAT;
-			Tut_WriteUint32(gen->code, gen->codeLength, offset);
-			gen->codeLength += 4;
-		} break;
-		
-		case TUT_EXPR_STR:
-		{
-			TutBool found = TUT_FALSE;
-			uint32_t offset;
-			
-			for(int i = 0; i < gen->numStrings; ++i)
-			{
-				uint32_t length = Tut_ReadUint32(gen->data, gen->stringOffsets[i]);
-				const char* data = &gen->data[gen->stringOffsets[i] + 4];
-				
-				if(Tut_Strncmp(exp->string, data, length) == 0)
-				{
-					found = TUT_TRUE;
-					offset = gen->stringOffsets[i];
-					break;
-				}
-			}
-			
-			if(!found)
-			{
-				offset = gen->dataLength;
-				gen->stringOffsets[gen->numStrings++] = offset;
-				
-				uint32_t len = (uint32_t)strlen(exp->string);
-				
-				Tut_WriteUint32(gen->data, offset, len);
-				gen->dataLength += 4;
-				for(int i = 0; i < len; ++i)
-					gen->data[gen->dataLength + i] = exp->string[i];
-				gen->dataLength += len;
-			}
-			
-			gen->code[gen->codeLength++] = TUT_OP_PUSH_CSTR;
-			Tut_WriteUint32(gen->code, gen->codeLength, offset);
-			gen->codeLength += 4;
-		} break;
-		
-		case TUT_EXPR_VAR:
-		{
-			if(!exp->varx.decl)
-			{	
-				exp->varx.decl = Tut_GetVarDecl(table, exp->varx.name, 0); 
-				if(!exp->varx.decl)
-				{
-					// TODO: Produce function pointer
-					Tut_ErrorExit("Attempted to access undeclared global variable '%s'\n", exp->varx.name);
-				}
-			}
-			
-			if(exp->varx.decl->scope == 0)
-			{
-				switch(exp->varx.decl->typetag->type)
-				{
-					case TUT_TYPETAG_BOOL: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_BOOL; break;
-					case TUT_TYPETAG_INT: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_INT; break;
-					case TUT_TYPETAG_FLOAT: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_FLOAT; break;
-					case TUT_TYPETAG_CSTR: gen->code[gen->codeLength++] = TUT_OP_GET_GLOBAL_CSTR; break;
-					case TUT_TYPETAG_USERTYPE:
-					{
-						TUT_LIST_EACH(node, exp->varx.decl->typetag->user.members)
-						{
-							TutTypetag* mem = node->value;
-							
-						}
-					} break;
-				}
-			}
-		} break;
+		index = vm->integers.length;
+		Tut_ArrayPush(&vm->integers, &value);
 	}
+
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
 }
 
-void Tut_DestroyCodegen(TutCodegen* gen);
+void Tut_EmitPushFloat(TutVM* vm, float value)
+{
+	Tut_EmitOp(vm, TUT_OP_PUSH_FLOAT);
 
+	int32_t index = -1;
+
+	for (int i = 0; i < vm->floats.length; ++i)
+	{
+		if (TUT_ARRAY_GET_VALUE(&vm->floats, i, float) == value)
+		{
+			index = i;
+			break;
+		}
+	}
+
+	if (index < 0)
+	{
+		index = vm->floats.length;
+		Tut_ArrayPush(&vm->floats, &value);
+	}
+
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
+void Tut_EmitPushCStr(TutVM* vm, const char* value)
+{
+	Tut_EmitOp(vm, TUT_OP_PUSH_CSTR);
+
+	int32_t index = -1;
+
+	for (int i = 0; i < vm->strings.length; ++i)
+	{
+		if (strcmp(TUT_ARRAY_GET_VALUE(&vm->strings, i, const char*), value) == 0)
+		{
+			index = i;
+			break;
+		}
+	}
+
+	if (index < 0)
+	{
+		const char* str = Tut_Strdup(value);
+		
+		index = vm->strings.length;
+		Tut_ArrayPush(&vm->strings, &str);
+	}
+
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
+void Tut_EmitCall(TutVM* vm, int32_t index, uint8_t nargs)
+{
+	Tut_EmitOp(vm, TUT_OP_CALL);
+	
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+
+	vm->code[vm->codeSize++] = nargs;
+}
+
+int32_t Tut_EmitGoto(TutVM* vm, TutBool cond, int32_t pc)
+{
+	if (!cond)
+		Tut_EmitOp(vm, TUT_OP_GOTO);
+	else
+		Tut_EmitOp(vm, TUT_OP_GOTOFALSE);
+
+	Tut_WriteInt32(vm->code, vm->codeSize, pc);
+	vm->codeSize += 4;
+
+	return vm->codeSize - 4;
+}
+
+void Tut_PatchGoto(TutVM* vm, int32_t patchLoc, int32_t pc)
+{
+	Tut_WriteInt32(vm->code, patchLoc, pc);
+}
+
+void Tut_EmitFunctionEntryPoint(TutVM* vm)
+{
+	Tut_ArrayPush(&vm->functionPcs, &vm->codeSize);
+}

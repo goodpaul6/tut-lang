@@ -1,6 +1,8 @@
 #ifndef TUT_BUF_H
 #define TUT_BUF_H
 
+#include <stdint.h>
+
 uint8_t Tut_ReadUint8(const uint8_t* buf, uint32_t pos);
 uint16_t Tut_ReadUint16(const uint8_t* buf, uint32_t pos);
 uint32_t Tut_ReadUint32(const uint8_t* buf, uint32_t pos);

@@ -44,7 +44,7 @@ static TutExpr* ParseInt(TutModule* module)
 static TutExpr* ParseFloat(TutModule* module)
 {
 	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_FLOAT, &module->lexer.context);
-	exp->floatVal = module->lexer.number;
+	exp->floatVal = (float)module->lexer.number;
 	
 	Tut_GetToken(&module->lexer);
 	
@@ -53,7 +53,7 @@ static TutExpr* ParseFloat(TutModule* module)
 
 static TutExpr* ParseString(TutModule* module)
 {
-	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_NUM, &module->lexer.context);
+	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_STR, &module->lexer.context);
 	exp->string = Tut_Strdup(module->lexer.lexeme);
 
 	Tut_GetToken(&module->lexer);
@@ -225,7 +225,9 @@ static TutExpr* ParseFactor(TutModule* module)
 {
 	switch(module->lexer.curTok)
 	{
-		case TUT_TOK_NUMBER: return ParseNumber(module);
+		case TUT_TOK_INT: return ParseInt(module);
+		case TUT_TOK_FLOAT: return ParseFloat(module);
+
 		case TUT_TOK_STRING: return ParseString(module);
 		
 		case TUT_TOK_VAR: return ParseVar(module);

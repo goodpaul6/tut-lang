@@ -74,6 +74,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -110,6 +111,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="tut_array.c" />
+    <ClCompile Include="tut_buf.c" />
+    <ClCompile Include="tut_codegen.c" />
+    <ClCompile Include="tut_expr.c" />
+    <ClCompile Include="tut_lexer.c" />
+    <ClCompile Include="tut_list.c" />
+    <ClCompile Include="tut_main.c" />
+    <ClCompile Include="tut_module.c" />
+    <ClCompile Include="tut_parser.c" />
+    <ClCompile Include="tut_symbols.c" />
+    <ClCompile Include="tut_token.c" />
+    <ClCompile Include="tut_typetag.c" />
+    <ClCompile Include="tut_util.c" />
+    <ClCompile Include="tut_vm.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tut_array.h" />
+    <ClInclude Include="tut_buf.h" />
+    <ClInclude Include="tut_codegen.h" />
+    <ClInclude Include="tut_expr.h" />
+    <ClInclude Include="tut_lexer.h" />
+    <ClInclude Include="tut_lexercontext.h" />
+    <ClInclude Include="tut_list.h" />
+    <ClInclude Include="tut_module.h" />
+    <ClInclude Include="tut_objects.h" />
+    <ClInclude Include="tut_opcodes.h" />
+    <ClInclude Include="tut_parser.h" />
+    <ClInclude Include="tut_symbols.h" />
+    <ClInclude Include="tut_token.h" />
+    <ClInclude Include="tut_typetag.h" />
+    <ClInclude Include="tut_util.h" />
+    <ClInclude Include="tut_vm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

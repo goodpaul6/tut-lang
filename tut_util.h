@@ -2,6 +2,7 @@
 #define TUT_UTIL_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef enum
 {
