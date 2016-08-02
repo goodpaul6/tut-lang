@@ -1,0 +1,28 @@
+extern printf(format : cstr, ...) : void
+
+func make_vec2(x : float, y : float) : Vec2
+{
+	var v : Vec2;
+
+	v.x = x;
+	v.y = y;
+
+	return v;
+}
+
+func print_vec2(v : Vec2) : void
+{
+	printf("(%f, %f)\n", v.x, v.y);
+}
+
+func _main() : void
+{
+	var pos : Vec2 = make_vec2(10, 10);
+	print_vec2(pos);
+}
+
+struct Vec2
+{
+	x : float;
+	y : float;
+}

@@ -15,6 +15,7 @@ void Tut_InitVM(TutVM* vm)
 	Tut_InitArray(&vm->functionPcs, sizeof(int32_t));
 
 	Tut_InitArray(&vm->returnFrames, sizeof(TutReturnFrame));
+	Tut_InitArray(&vm->externs, sizeof(TutVMExternFunction));
 
 	vm->codeSize = 0;
 
@@ -128,22 +129,40 @@ char* TutPopString(TutVM* vm)
 	return object.sv;
 }
 
-void Tut_ExecuteCycle(TutVM* vm)
+void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index)
+{
+	assert(index < vm->externs.length);
+	Tut_ArraySet(&vm->externs, index, &ext);
+}
+
+#if 1
+#define DEBUG_CYCLE(op, format, ...) if(printOp) printf("%s " format "\n", #op, __VA_ARGS__)
+#else
+#define DEBUG_CYCLE(op, format, ...)
+#endif
+
+void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 {
 	if(vm->pc < 0) return;
 	
 	uint8_t op = vm->code[vm->pc++];
-	
+
+	if(printOp) printf("%d: ", vm->pc);
+
 	switch(op)
 	{
 		case TUT_OP_PUSH_TRUE:
 		{
+			DEBUG_CYCLE(TUT_OP_PUSH_TRUE, "");
+
 			TutBool value = (TutBool)vm->code[vm->pc++];
 			Tut_PushBool(vm, TUT_TRUE);
 		} break;
 		
 		case TUT_OP_PUSH_FALSE:
 		{
+			DEBUG_CYCLE(TUT_OP_PUSH_FALSE, "");
+
 			TutBool value = (TutBool)vm->code[vm->pc++];
 			Tut_PushBool(vm, TUT_FALSE);
 		} break;
@@ -155,6 +174,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			
 			int32_t value = TUT_ARRAY_GET_VALUE(&vm->integers, index, int32_t);
 			Tut_PushInt(vm, value);
+
+			DEBUG_CYCLE(TUT_OP_PUSH_INT, "%d", value);
 		} break;
 		
 		case TUT_OP_PUSH_FLOAT:
@@ -164,6 +185,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			
 			float value = TUT_ARRAY_GET_VALUE(&vm->floats, index, float);
 			Tut_PushFloat(vm, value);
+
+			DEBUG_CYCLE(TUT_OP_PUSH_INT, "%g", value);
 		} break;
 		
 		case TUT_OP_PUSH_CSTR:
@@ -173,6 +196,20 @@ void Tut_ExecuteCycle(TutVM* vm)
 			
 			const char* data = TUT_ARRAY_GET_VALUE(&vm->strings, index, const char*);
 			Tut_PushCString(vm, data);
+
+			DEBUG_CYCLE(TUT_OP_PUSH_CSTR, "%s", data);
+		} break;
+
+		case TUT_OP_PUSH:
+		{
+			if (vm->sp >= TUT_VM_STACK_SIZE)
+			{
+				fprintf(stderr, "VM Stack Overflow (TUT_OP_PUSH)!\n");
+				vm->pc = -1;
+			}
+			++vm->sp;
+
+			DEBUG_CYCLE(TUT_OP_PUSH, "");
 		} break;
 
 		case TUT_OP_POP:
@@ -184,6 +221,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 				return;
 			}
 			--vm->sp;
+
+			DEBUG_CYCLE(TUT_OP_POP, "");
 		} break;
 		
 		case TUT_OP_GET_GLOBAL:
@@ -192,6 +231,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->pc += 4;
 
 			Tut_Push(vm, &vm->globals[index]);
+
+			DEBUG_CYCLE(TUT_OP_GET_GLOBAL, "%d", index);
 		} break;
 
 		case TUT_OP_SET_GLOBAL:
@@ -200,6 +241,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->pc += 4;
 
 			Tut_Pop(vm, &vm->globals[index]);
+
+			DEBUG_CYCLE(TUT_OP_SET_GLOBAL, "%d", index);
 		} break;
 
 		case TUT_OP_GET_LOCAL:
@@ -208,6 +251,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->pc += 4;
 
 			Tut_Push(vm, &vm->stack[vm->fp + index]);
+
+			DEBUG_CYCLE(TUT_OP_GET_LOCAL, "%d", index);
 		} break;
 
 		case TUT_OP_SET_LOCAL:
@@ -216,6 +261,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->pc += 4;
 			
 			Tut_Pop(vm, &vm->stack[vm->fp + index]);
+
+			DEBUG_CYCLE(TUT_OP_SET_LOCAL, "%d", index);
 		} break;
 
 #define BIN_OP_INT(name, op) 
@@ -224,7 +271,9 @@ void Tut_ExecuteCycle(TutVM* vm)
 		{ 
 			int32_t b = Tut_PopInt(vm); 
 			int32_t a = Tut_PopInt(vm); 
-			Tut_PushInt(vm, a + b); 
+			Tut_PushInt(vm, a + b);
+
+			DEBUG_CYCLE(TUT_OP_ADDI, "%d, %d", a, b);
 		} break;
 		
 		case TUT_OP_SUBI: 
@@ -232,6 +281,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			int32_t b = Tut_PopInt(vm); 
 			int32_t a = Tut_PopInt(vm); 
 			Tut_PushInt(vm, a - b); 
+
+			DEBUG_CYCLE(TUT_OP_SUBI, "%d, %d", a, b);
 		} break;
 
 		case TUT_OP_MULI: 
@@ -239,6 +290,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			int32_t b = Tut_PopInt(vm); 
 			int32_t a = Tut_PopInt(vm); 
 			Tut_PushInt(vm, a * b); 
+
+			DEBUG_CYCLE(TUT_OP_MULI, "%d, %d", a, b);
 		} break;
 		
 		case TUT_OP_DIVI: 
@@ -246,12 +299,9 @@ void Tut_ExecuteCycle(TutVM* vm)
 			int32_t b = Tut_PopInt(vm); 
 			int32_t a = Tut_PopInt(vm); 
 			Tut_PushInt(vm, a / b); 
-		} break;
 
-		BIN_OP_INT(TUT_OP_ADDI, +)
-		BIN_OP_INT(TUT_OP_SUBI, -)
-		BIN_OP_INT(TUT_OP_MULI, *)
-		BIN_OP_INT(TUT_OP_DIVI, /)
+			DEBUG_CYCLE(TUT_OP_DIVI, "%d, %d", a, b);
+		} break;
 		
 		BIN_OP_FLOAT(TUT_OP_ADDF, +)
 		BIN_OP_FLOAT(TUT_OP_SUBF, -)
@@ -260,6 +310,136 @@ void Tut_ExecuteCycle(TutVM* vm)
 
 #undef BIN_OP_INT
 #undef BIN_OP_FLOAT
+
+		case TUT_OP_LAND:
+		{
+			TutBool b = Tut_PopBool(vm), a = Tut_PopBool(vm);
+			Tut_PushBool(vm, a && b);
+
+			DEBUG_CYCLE(TUT_OP_LAND, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_LOR:
+		{
+			TutBool b = Tut_PopBool(vm), a = Tut_PopBool(vm);
+			Tut_PushBool(vm, a || b);
+
+			DEBUG_CYCLE(TUT_OP_LOR, "%d, %d", a, b);
+		} break;
+		
+		case TUT_OP_LNOT:
+		{
+			TutBool a = Tut_PopBool(vm);
+			Tut_PushBool(vm, !a);
+
+			DEBUG_CYCLE(TUT_OP_LNOT, "%d", a);
+		} break;
+
+		case TUT_OP_ILT:
+		{
+			int32_t b = Tut_PopInt(vm), a = Tut_PopInt(vm);
+			Tut_PushBool(vm, a < b);
+
+			DEBUG_CYCLE(TUT_OP_ILT, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_IGT:
+		{
+			int32_t b = Tut_PopInt(vm), a = Tut_PopInt(vm);
+			Tut_PushBool(vm, a > b);
+
+			DEBUG_CYCLE(TUT_OP_IGT, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_ILTE:
+		{
+			int32_t b = Tut_PopInt(vm), a = Tut_PopInt(vm);
+			Tut_PushBool(vm, a <= b);
+
+			DEBUG_CYCLE(TUT_OP_ILTE, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_IGTE:
+		{
+			int32_t b = Tut_PopInt(vm), a = Tut_PopInt(vm);
+			Tut_PushBool(vm, a >= b);
+
+			DEBUG_CYCLE(TUT_OP_IGTE, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_IEQ:
+		{
+			int32_t b = Tut_PopInt(vm), a = Tut_PopInt(vm);
+			Tut_PushBool(vm, a == b);
+
+			DEBUG_CYCLE(TUT_OP_IEQ, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_INEG:
+		{
+			int32_t i = Tut_PopInt(vm);
+			Tut_PushBool(vm, -i);
+
+			DEBUG_CYCLE(TUT_OP_INEG, "%d", i);
+		} break;
+
+		case TUT_OP_FLT: 
+		{
+			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
+			Tut_PushBool(vm, a < b);
+
+			DEBUG_CYCLE(TUT_OP_FLT, "%d, %d", a, b);
+		} break;
+		
+		case TUT_OP_FGT:
+		{
+			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
+			Tut_PushBool(vm, a > b);
+
+			DEBUG_CYCLE(TUT_OP_FGT, "%d, %d", a, b);
+		} break;
+		
+		case TUT_OP_FLTE:
+		{
+			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
+			Tut_PushBool(vm, a <= b);
+
+			DEBUG_CYCLE(TUT_OP_FLTE, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_FGTE:
+		{
+			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
+			Tut_PushBool(vm, a >= b);
+
+			DEBUG_CYCLE(TUT_OP_FGTE, "%d, %d", a, b);
+		} break;
+			
+		case TUT_OP_FEQ:
+		{
+			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
+			Tut_PushBool(vm, a == b);
+
+			DEBUG_CYCLE(TUT_OP_FEQ, "%d, %d", a, b);
+		} break;
+
+		case TUT_OP_FNEG:
+		{
+			float f = Tut_PopFloat(vm);
+			Tut_PushBool(vm, -f);
+
+			DEBUG_CYCLE(TUT_OP_FNEG, "%d", f);
+		} break;
+
+		case TUT_OP_SEQ:
+		{
+			const char* b = Tut_PopCString(vm);
+			const char* a = Tut_PopCString(vm);
+
+			Tut_PushBool(vm, strcmp(a, b) == 0);
+
+			DEBUG_CYCLE(TUT_OP_SEQ, "%s, %s", a, b);
+		} break;
 
 		case TUT_OP_CALL:
 		{
@@ -277,6 +457,32 @@ void Tut_ExecuteCycle(TutVM* vm)
 
 			vm->pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, index, int32_t);
 			vm->fp = vm->sp;
+
+			DEBUG_CYCLE(TUT_OP_CALL, "%d, %d", index, nargs);
+		} break;
+
+		case TUT_OP_CALL_EXTERN:
+		{
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+			uint8_t nargs = vm->code[vm->pc++];
+
+			DEBUG_CYCLE(TUT_OP_CALL_EXTERN, "%d, %d", index, nargs);
+			assert(index >= 0 && index < vm->externs.length);
+
+			TutVMExternFunction ext = TUT_ARRAY_GET_VALUE(&vm->externs, index, TutVMExternFunction);
+			
+			int32_t sp = vm->sp;
+
+			TutBool hasResult = ext(vm, nargs);
+		
+			TutObject object;
+			if (hasResult)
+				Tut_Pop(vm, &object);
+
+			vm->sp = sp - nargs;
+			if(hasResult)
+				Tut_Push(vm, &object);
 		} break;
 
 		case TUT_OP_RET:
@@ -293,6 +499,8 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->sp = frame.fp;
 			vm->sp -= frame.nargs;
 			vm->pc = frame.pc;
+
+			DEBUG_CYCLE(TUT_OP_RET, "");
 		} break;
 
 		case TUT_OP_RETVAL:
@@ -315,17 +523,22 @@ void Tut_ExecuteCycle(TutVM* vm)
 			vm->pc = frame.pc;
 
 			Tut_Push(vm, &object);
+
+			DEBUG_CYCLE(TUT_OP_RETVAL, "");
 		} break;
 
 		case TUT_OP_GOTO:
 		{
 			int32_t pc = Tut_ReadInt32(vm->code, vm->pc);
+			DEBUG_CYCLE(TUT_OP_GOTO, "%d", pc);
 			vm->pc = pc;
 		} break;
 
 		case TUT_OP_GOTOFALSE:
 		{
 			int32_t pc = Tut_ReadInt32(vm->code, vm->pc);
+			DEBUG_CYCLE(TUT_OP_GOTOFALSE, "%d", pc);
+
 			vm->pc += 4;
 			
 			TutBool value = Tut_PopBool(vm);
@@ -336,6 +549,7 @@ void Tut_ExecuteCycle(TutVM* vm)
 		case TUT_OP_HALT:
 		{
 			vm->pc = -1;
+			DEBUG_CYCLE(TUT_OP_HALT, "");
 		} break;
 	}
 }

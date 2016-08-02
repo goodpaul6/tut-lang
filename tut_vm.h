@@ -5,6 +5,7 @@
 #define TUT_VM_MAX_GLOBALS		256	
 #define TUT_VM_STACK_SIZE		256
 
+#include "tut_util.h"
 #include "tut_objects.h"
 #include "tut_array.h"
 
@@ -21,7 +22,9 @@ typedef struct
 	TutArray integers;
 	TutArray floats;
 	TutArray strings;
+	
 	TutArray functionPcs;
+	TutArray externs;
 
 	TutArray returnFrames;
 
@@ -31,6 +34,10 @@ typedef struct
 	TutObject globals[TUT_VM_MAX_GLOBALS];
 	TutObject stack[TUT_VM_STACK_SIZE];
 } TutVM;
+
+// Externs return true if they return a value (i.e push onto the stack)
+// or false if they don't
+typedef TutBool(*TutVMExternFunction)(TutVM* vm, uint8_t nargs);
 
 void Tut_InitVM(TutVM* vm);
 
@@ -53,7 +60,9 @@ float Tut_PopFloat(TutVM* vm);
 const char* Tut_PopCString(TutVM* vm);
 char* TutPopString(TutVM* vm);
 
-void Tut_ExecuteCycle(TutVM* vm);
+void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index);
+
+void Tut_ExecuteCycle(TutVM* vm, TutBool printOp);
 
 void Tut_DestroyVM(TutVM* vm);
 

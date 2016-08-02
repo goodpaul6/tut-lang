@@ -4,11 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef enum
-{
-	TUT_FALSE = 0,
-	TUT_TRUE = 1
-} TutBool;
+#define TUT_TRUE 1
+#define TUT_FALSE 0
+
+typedef char TutBool;
 
 typedef enum
 {

@@ -4,14 +4,23 @@
 #include "tut_list.h"
 #include "tut_typetag.h"
 
+typedef enum
+{
+	TUT_FUNC_DECL_NORMAL,
+	TUT_FUNC_DECL_EXTERN
+} TutFuncDeclType;
+
 typedef struct TutFuncDecl
 {
+	TutFuncDeclType type;
+
 	TutTypetag* returnType;
 	struct TutFuncDecl* parent;
 	
 	int index;
 	char* name;
 
+	TutBool hasVarargs;
 	TutList locals, args;
 	TutList nestedFunctions;
 } TutFuncDecl;
@@ -32,12 +41,13 @@ typedef struct
 	TutFuncDecl* curFunc;
 	int curScope;
 	
-	int numFunctions, numGlobals;
+	int numFunctions, numExterns, numGlobals;
 } TutSymbolTable;
 
 void Tut_InitSymbolTable(TutSymbolTable* table);
 
 TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name);
+TutFuncDecl* Tut_DeclareExtern(TutSymbolTable* table, const char* name);
 TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutTypetag* typetag);
 TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutTypetag* typetag);
 

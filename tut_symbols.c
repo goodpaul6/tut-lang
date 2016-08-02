@@ -5,13 +5,16 @@
 #include "tut_symbols.h"
 #include "tut_util.h"
 
-static TutFuncDecl* MakeFuncDecl(const char* name)
+static TutFuncDecl* MakeFuncDecl(const char* name, TutFuncDeclType type)
 {
 	TutFuncDecl* decl = Tut_Malloc(sizeof(TutFuncDecl));
 	
+	decl->type = type;
+
 	decl->returnType = NULL;
 	decl->parent = NULL;
 	
+	decl->hasVarargs = TUT_FALSE;
 	decl->index = -1;
 	decl->name = Tut_Strdup(name);
 	
@@ -46,12 +49,13 @@ void Tut_InitSymbolTable(TutSymbolTable* table)
 	table->curScope = 0;
 
 	table->numFunctions = 0;
+	table->numExterns = 0;
 	table->numGlobals = 0;
 }
 
 TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
 {
-	TutFuncDecl* decl = MakeFuncDecl(name);
+	TutFuncDecl* decl = MakeFuncDecl(name, TUT_FUNC_DECL_NORMAL);
 	
 	decl->index = table->numFunctions++;
 		
@@ -63,16 +67,31 @@ TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
 	return decl;
 }
 
+TutFuncDecl* Tut_DeclareExtern(TutSymbolTable* table, const char* name)
+{
+	TutFuncDecl* decl = MakeFuncDecl(name, TUT_FUNC_DECL_EXTERN);
+
+	decl->index = table->numExterns++;
+
+	if (table->curFunc)
+		Tut_ListAppend(&table->curFunc->nestedFunctions, decl);
+	else
+		Tut_ListAppend(&table->functions, decl);
+
+	return decl;
+}
+
 TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutTypetag* typetag)
 {
 	assert(table->curFunc);
 	
 	TutVarDecl* decl = MakeVarDecl(name, typetag);
 	
-	decl->index = table->curFunc->args.length;
+	decl->parent = table->curFunc;
+	decl->index = -((int)table->curFunc->args.length + 1);
 	decl->scope = table->curScope;
 		
-	Tut_ListAppend(&table->curFunc->locals, decl);
+	Tut_ListAppend(&table->curFunc->args, decl);
 	
 	return decl;
 }
@@ -80,10 +99,11 @@ TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutType
 TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutTypetag* typetag)
 {
 	TutVarDecl* decl = MakeVarDecl(name, typetag);
-	
+	decl->parent = table->curFunc;
+
 	if(table->curFunc)
 	{
-		decl->index = -((int)table->curFunc->args.length + 1);
+		decl->index = table->curFunc->locals.length;
 		decl->scope = table->curScope;
 		
 		Tut_ListAppend(&table->curFunc->locals, decl);
@@ -174,6 +194,16 @@ TutVarDecl* Tut_GetVarDecl(TutSymbolTable* table, const char* name, int scope)
 
 TutFuncDecl* Tut_GetFuncDecl(TutSymbolTable* table, const char* name)
 {
+	if (table->curFunc)
+	{
+		TUT_LIST_EACH(node, table->curFunc->nestedFunctions)
+		{
+			TutFuncDecl* decl = node->value;
+			if (strcmp(decl->name, name) == 0)
+				return decl;
+		}
+	}
+
 	TUT_LIST_EACH(node, table->functions)
 	{
 		TutFuncDecl* decl = node->value;

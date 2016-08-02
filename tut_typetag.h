@@ -3,9 +3,11 @@
 
 #include "tut_list.h"
 #include "tut_util.h"
+#include "tut_array.h"
 
 typedef enum
 {
+	TUT_TYPETAG_VOID,
 	TUT_TYPETAG_BOOL,
 	TUT_TYPETAG_INT,
 	TUT_TYPETAG_FLOAT,
@@ -14,6 +16,14 @@ typedef enum
 	TUT_TYPETAG_USERTYPE,
 	TUT_TYPETAG_COUNT
 } TutTypetagType;
+
+struct TutTypetag;
+
+typedef struct
+{
+	char* name;
+	struct TutTypetag* typetag;
+} TutTypetagMember;
 
 typedef struct TutTypetag
 {
@@ -25,7 +35,7 @@ typedef struct TutTypetag
 		{
 			TutBool defined;
 			char* name;
-			TutList members;
+			TutArray members;
 		} user;
 	};
 } TutTypetag;

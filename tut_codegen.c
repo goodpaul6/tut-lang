@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 
 #include "tut_opcodes.h"
 #include "tut_buf.h"
@@ -108,10 +109,13 @@ void Tut_EmitPushCStr(TutVM* vm, const char* value)
 	vm->codeSize += 4;
 }
 
-void Tut_EmitCall(TutVM* vm, int32_t index, uint8_t nargs)
+void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint8_t nargs)
 {
-	Tut_EmitOp(vm, TUT_OP_CALL);
-	
+	if (!ext)
+		Tut_EmitOp(vm, TUT_OP_CALL);
+	else
+		Tut_EmitOp(vm, TUT_OP_CALL_EXTERN);
+
 	Tut_WriteInt32(vm->code, vm->codeSize, index);
 	vm->codeSize += 4;
 

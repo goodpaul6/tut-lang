@@ -4,10 +4,12 @@
 #include <stddef.h>
 
 #define TUT_LIST_EACH(nodeName, list) for(TutListNode* nodeName = (list).head; nodeName; nodeName = nodeName->next)
+#define TUT_LIST_REVERSE_EACH(nodeName, list) for(TutListNode* node = (list).tail; nodeName; nodeName = nodeName->prev)
 
 typedef struct TutListNode
 {
 	struct TutListNode* next;
+	struct TutListNode* prev;
 	void* value;
 } TutListNode;
 

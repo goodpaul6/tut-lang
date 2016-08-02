@@ -4,6 +4,7 @@
 
 static const char* Names[TUT_TYPETAG_COUNT] = 
 {
+	"void",
 	"bool",
 	"int",
 	"float",
@@ -20,7 +21,7 @@ void Tut_InitTypetag(TutTypetag* tag, TutTypetagType type)
 	{
 		tag->user.defined = TUT_FALSE;
 		tag->user.name = NULL;
-		Tut_InitList(&tag->user.members);
+		Tut_InitArray(&tag->user.members, sizeof(TutTypetagMember));
 	}
 }
 
@@ -70,8 +71,8 @@ void Tut_DestroyTypetag(TutTypetag* tag)
 	{
 		if(tag->user.name) Tut_Free(tag->user.name);
 		
-		TUT_LIST_EACH(node, tag->user.members)
-			Tut_DestroyTypetag(node->value);
-		Tut_DestroyList(&tag->user.members);
+		for (size_t i = 0; i < tag->user.members.length; ++i)
+			Tut_DestroyTypetag(TUT_ARRAY_GET_VALUE(&tag->user.members, i, TutTypetagMember).typetag);
+		Tut_DestroyArray(&tag->user.members);
 	}
 }

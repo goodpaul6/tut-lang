@@ -4,16 +4,20 @@
 
 static const char* Names[TUT_TOK_COUNT] = 
 {
-	"number",
-	"string",
+	"integer literal",
+	"float literal",
+	"string literal",
 	"identifier",
 	
 	"var",
 	"func",
+	"extern",
 	"return",
 	"if",
 	"else",
 	"while",
+
+	"struct",
 	
 	"(",
 	")",
@@ -25,12 +29,30 @@ static const char* Names[TUT_TOK_COUNT] =
 	":",
 	";",
 	",",
+	".",
+	"...",
 	
 	"+",
 	"-",
 	"*",
 	"/",
+
+	"<",
+	">",
+	"<=",
+	">=",
+
+	"&",
+	"|",
+
+	"&&",
+	"||",
+	"!"
+
 	"=",
+
+	"!=",
+	"==",
 	
 	"EOF",
 	

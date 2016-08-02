@@ -1,4 +1,12 @@
-func add(x : int, y : int) : int
+extern printf(format : cstr, ...) : void
+
+func fact(n : int) : int
 {
-	return x + y;
+	if n <= 1 return 1;
+	return n * fact(n - 1);
+}
+
+func _main() : void
+{
+	printf("%i\n", fact(5));
 }

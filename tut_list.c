@@ -7,7 +7,8 @@ static TutListNode* MakeNode(void* value)
 	
 	node->value = value;
 	node->next = NULL;
-	
+	node->prev = NULL;
+
 	return node;
 }
 
@@ -25,6 +26,7 @@ void Tut_ListAppend(TutList* list, void* value)
 		list->head = list->tail = node;
 	else
 	{
+		node->prev = list->tail;
 		list->tail->next = node;
 		list->tail = node;
 	}
@@ -40,6 +42,7 @@ void Tut_ListPrepend(TutList* list, void* value)
 		list->head = list->tail = node;
 	else
 	{
+		list->head->prev = node;
 		node->next = list->head;
 		list->head = node;
 	}

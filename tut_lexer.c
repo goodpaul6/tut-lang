@@ -85,13 +85,15 @@ static TutToken GetToken(TutLexer* lexer)
 		
 		lexer->lexeme[i] = '\0';
 		
-		if(strcmp(lexer->lexeme, "if") == 0) return TUT_TOK_IF;
-		if(strcmp(lexer->lexeme, "else") == 0) return TUT_TOK_ELSE;
-		if(strcmp(lexer->lexeme, "while") == 0) return TUT_TOK_WHILE;
-		if(strcmp(lexer->lexeme, "var") == 0) return TUT_TOK_VAR;
-		if(strcmp(lexer->lexeme, "func") == 0) return TUT_TOK_FUNC;
-		if(strcmp(lexer->lexeme, "return") == 0) return TUT_TOK_RETURN;
-		
+		if (strcmp(lexer->lexeme, "if") == 0) return TUT_TOK_IF;
+		if (strcmp(lexer->lexeme, "else") == 0) return TUT_TOK_ELSE;
+		if (strcmp(lexer->lexeme, "while") == 0) return TUT_TOK_WHILE;
+		if (strcmp(lexer->lexeme, "var") == 0) return TUT_TOK_VAR;
+		if (strcmp(lexer->lexeme, "func") == 0) return TUT_TOK_FUNC;
+		if (strcmp(lexer->lexeme, "return") == 0) return TUT_TOK_RETURN;
+		if (strcmp(lexer->lexeme, "extern") == 0) return TUT_TOK_EXTERN;
+		if (strcmp(lexer->lexeme, "struct") == 0) return TUT_TOK_STRUCT;
+
 		return TUT_TOK_IDENT;
 	}
 	
@@ -130,8 +132,29 @@ static TutToken GetToken(TutLexer* lexer)
 		
 		while(lexer->last != '"')
 		{
-			if(i < TUT_MAX_LEXEME_LENGTH - 1)
+			if (i < TUT_MAX_LEXEME_LENGTH - 1)
+			{
+				if (lexer->last == '\\')
+				{
+					lexer->last = GetChar(lexer);
+					
+					switch (lexer->last)
+					{
+						case 'n': lexer->last = '\n'; break;
+						case 't': lexer->last = '\t'; break;
+						case 'r': lexer->last = '\r'; break;
+						case 'b': lexer->last = '\b'; break;
+						case '0': lexer->last = '\0'; break;
+						case '\\': lexer->last = '\\'; break;
+						default:
+							Tut_ErrorExit("Invalid escape sequence '\%c'\n", lexer->last);
+							return TUT_TOK_ERROR;
+							break;
+					}
+				}
+
 				lexer->lexeme[i++] = lexer->last;
+			}
 			else
 				Tut_ErrorExit("String exceeded maximum lexeme length.\n");
 			
@@ -198,6 +221,26 @@ static TutToken GetToken(TutLexer* lexer)
 		return TUT_TOK_COMMA;
 	}
 	
+	if (lexer->last == '.')
+	{
+		lexer->last = GetChar(lexer);
+		
+		if (lexer->last == '.')
+		{
+			lexer->last = GetChar(lexer);
+			if (lexer->last == '.')
+			{
+				lexer->last = GetChar(lexer);
+				return TUT_TOK_ELLIPSIS;
+			}
+
+			Tut_ErrorExit("Invalid token '..'\n");
+			return TUT_TOK_ERROR;
+		}
+
+		return TUT_TOK_DOT;
+	}
+
 	if(lexer->last == '+')
 	{
 		lexer->last = GetChar(lexer);
@@ -230,10 +273,76 @@ static TutToken GetToken(TutLexer* lexer)
 		return TUT_TOK_DIV;
 	}
 	
+	if (lexer->last == '<')
+	{
+		lexer->last = GetChar(lexer);
+		if (lexer->last == '=')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_LTE;
+		}
+
+		return TUT_TOK_LT;
+	}
+
+	if (lexer->last == '>')
+	{
+		lexer->last = GetChar(lexer);
+		if (lexer->last == '=')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_GTE;
+		}
+
+		return TUT_TOK_GT;
+	}
+
+	if (lexer->last == '&')
+	{
+		lexer->last = GetChar(lexer);
+		if (lexer->last == '&')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_LAND;
+		}
+
+		return TUT_TOK_AND;
+	}
+
+	if (lexer->last == '|')
+	{
+		lexer->last = GetChar(lexer);
+		if (lexer->last == '|')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_LOR;
+		}
+
+		return TUT_TOK_OR;
+	}
+
 	if(lexer->last == '=')
 	{
 		lexer->last = GetChar(lexer);
+		if (lexer->last == '=')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_EQUALS;
+		}
+
 		return TUT_TOK_ASSIGN;
+	}
+
+	if (lexer->last == '!')
+	{
+		lexer->last = GetChar(lexer);
+		if (lexer->last == '=')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_NEQUALS;
+		}
+
+		return TUT_TOK_LNOT;
 	}
 	
 	if(lexer->last == EOF)

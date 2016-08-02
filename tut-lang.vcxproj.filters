@@ -57,6 +57,12 @@
     <ClCompile Include="tut_symbols.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tut_compiler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tut_stdext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tut_token.h">
@@ -105,6 +111,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tut_symbols.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tut_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tut_stdext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

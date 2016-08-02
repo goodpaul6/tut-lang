@@ -11,6 +11,8 @@ typedef enum
 	TUT_EXPR_INT,
 	TUT_EXPR_FLOAT,
 	TUT_EXPR_STR,
+
+	TUT_EXPR_IDENT,
 	TUT_EXPR_VAR,
 	
 	TUT_EXPR_BIN,
@@ -18,10 +20,13 @@ typedef enum
 	TUT_EXPR_CALL,
 	
 	TUT_EXPR_FUNC,
+	TUT_EXPR_EXTERN,
 	
 	TUT_EXPR_RETURN,
 	TUT_EXPR_IF,
-	TUT_EXPR_WHILE
+	TUT_EXPR_WHILE,
+
+	TUT_EXPR_STRUCT_DEF
 } TutExprType;
 
 typedef struct TutExpr
@@ -37,7 +42,8 @@ typedef struct TutExpr
 		int intVal;
 		float floatVal;
 		char* string;
-	
+		
+		// Used by both EXPR_VAR and EXPR_IDENT
 		struct
 		{
 			char* name;
@@ -67,6 +73,11 @@ typedef struct TutExpr
 		
 		struct
 		{
+			TutFuncDecl* decl;
+		} externx;
+
+		struct
+		{
 			TutFuncDecl* parent;
 			struct TutExpr* value;
 		} retx;
@@ -83,6 +94,11 @@ typedef struct TutExpr
 			struct TutExpr* cond;
 			struct TutExpr* body;
 		} whilex;
+		
+		struct
+		{
+			struct TutTypetag* typetag;
+		} structx;
 	};
 } TutExpr;
 
