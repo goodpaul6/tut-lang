@@ -1,6 +1,8 @@
 #ifndef TUT_SYMBOLS_H
 #define TUT_SYMBOLS_H
 
+#define TUT_VAR_DECL_INDEX_UNDEFINED -0xFFFF
+
 #include "tut_list.h"
 #include "tut_typetag.h"
 
@@ -41,7 +43,7 @@ typedef struct
 	TutFuncDecl* curFunc;
 	int curScope;
 	
-	int numFunctions, numExterns, numGlobals;
+	int numFunctions, numExterns;
 } TutSymbolTable;
 
 void Tut_InitSymbolTable(TutSymbolTable* table);

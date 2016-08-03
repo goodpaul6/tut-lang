@@ -40,6 +40,25 @@ TutTypetag* Tut_CreatePrimitiveTypetag(const char* name)
 	return NULL;
 }
 
+int Tut_GetTypetagCount(TutTypetag* tag)
+{
+	if (tag->type == TUT_TYPETAG_USERTYPE)
+	{
+		int totalSize = 0;
+		for (size_t i = 0; i < tag->user.members.length; ++i)
+		{
+			TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
+			totalSize += Tut_GetTypetagCount(mem->typetag);
+		}
+
+		return totalSize;
+	}
+	else if (tag->type == TUT_TYPETAG_VOID)
+		return 0;
+
+	return 1;
+}
+
 TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 {
 	if(a->type != b->type) return TUT_FALSE;
@@ -72,7 +91,12 @@ void Tut_DestroyTypetag(TutTypetag* tag)
 		if(tag->user.name) Tut_Free(tag->user.name);
 		
 		for (size_t i = 0; i < tag->user.members.length; ++i)
-			Tut_DestroyTypetag(TUT_ARRAY_GET_VALUE(&tag->user.members, i, TutTypetagMember).typetag);
+		{
+			TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
+
+			Tut_Free(mem->name);
+			Tut_DestroyTypetag(mem->typetag);
+		}
 		Tut_DestroyArray(&tag->user.members);
 	}
 }

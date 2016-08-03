@@ -9,14 +9,27 @@ typedef enum
 	TUT_OP_PUSH_FLOAT,
 	TUT_OP_PUSH_CSTR,
 
-	TUT_OP_PUSH,			// push uninitialized object onto stack (i.e increment stack pointer)
-	TUT_OP_POP,				// pop off of the stack (decrement stack pointer, usually to discard function return value)
+	TUT_OP_PUSHN,			// push n (uint16) uninitialized objects onto stack (i.e increment stack pointer)
+	TUT_OP_PUSH1,			// push 1 ...
+	TUT_OP_POPN,			// pop n (uint16) objects off of the stack (decrement stack pointer, usually to discard function return value)
+	TUT_OP_POP1,			// pop 1 object off the stack
+	
+	TUT_OP_MOVEN,			// move n (uint16) objects down m (uint16) spaces in the stack
+							// ex. stack = [10, 20, 30] -> TUT_OP_MOVEN 2, 1 -> stack = [20, 30]
+	TUT_OP_MOVE1,			// just like moven except n = 1
 
-	TUT_OP_GET_GLOBAL,
-	TUT_OP_SET_GLOBAL,
+	TUT_OP_GETGLOBALN,		// push n (uint16) globals starting at index m (int32) onto the stack in order
+	TUT_OP_GETGLOBAL1,		// push 1 global from index m (int32) onto the stack
 
-	TUT_OP_GET_LOCAL,
-	TUT_OP_SET_LOCAL,
+	TUT_OP_SETGLOBALN,		// pop n (uint16) locals and assign them to values starting at index m (int32) in reverse order
+							// (i.e first value popped is at the highest index and so on)
+	TUT_OP_SETGLOBAL1,		// push 1 local ...
+
+	TUT_OP_GETLOCALN,
+	TUT_OP_GETLOCAL1,
+
+	TUT_OP_SETLOCALN,
+	TUT_OP_SETLOCAL1,
 	
 	TUT_OP_ADDI,
 	TUT_OP_SUBI,
@@ -52,7 +65,9 @@ typedef enum
 	TUT_OP_CALL_EXTERN,
 
 	TUT_OP_RET,
-	TUT_OP_RETVAL,
+
+	TUT_OP_RETVALN,
+	TUT_OP_RETVAL1,
 
 	TUT_OP_GOTO,
 	TUT_OP_GOTOFALSE,

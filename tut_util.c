@@ -7,6 +7,8 @@
 
 void Tut_ErrorExit(const char* fmt, ...)
 {
+	fprintf(stderr, "Error: ");
+
 	va_list args;
 	
 	va_start(args, fmt);

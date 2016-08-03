@@ -15,6 +15,12 @@ typedef struct
 	int32_t pc, fp;
 } TutReturnFrame;
 
+typedef enum
+{
+	TUT_VM_DEBUG_OP = 1,
+	TUT_VM_DEBUG_REGS = 2,
+} TutVMDebugFlags;
+
 typedef struct
 {
 	int32_t sp, pc, fp;
@@ -35,9 +41,8 @@ typedef struct
 	TutObject stack[TUT_VM_STACK_SIZE];
 } TutVM;
 
-// Externs return true if they return a value (i.e push onto the stack)
-// or false if they don't
-typedef TutBool(*TutVMExternFunction)(TutVM* vm, uint8_t nargs);
+// Externs return number of values pushed onto the stack (0 if none are returned)
+typedef uint16_t(*TutVMExternFunction)(TutVM* vm, const TutObject* args, uint8_t nargs);
 
 void Tut_InitVM(TutVM* vm);
 
@@ -62,7 +67,7 @@ char* TutPopString(TutVM* vm);
 
 void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index);
 
-void Tut_ExecuteCycle(TutVM* vm, TutBool printOp);
+void Tut_ExecuteCycle(TutVM* vm, int debugFlags);
 
 void Tut_DestroyVM(TutVM* vm);
 

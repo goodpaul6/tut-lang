@@ -319,11 +319,29 @@ static TutExpr* ParseStruct(TutModule* module)
 		
 		mem.typetag = ParseType(module);
 
+		if (Tut_CompareTypes(mem.typetag, exp->structx.typetag))
+			ParseError(module, "Recursive type definition; Struct '%s' contains member '%s' of type '%s'.\n", Tut_TypetagRepr(exp->structx.typetag), mem.name, Tut_TypetagRepr(mem.typetag));
+
 		if (module->lexer.curTok == TUT_TOK_SEMICOLON)
 			Tut_GetToken(&module->lexer);
 
 		Tut_ArrayPush(&exp->structx.typetag->user.members, &mem);
 	}
+	Tut_GetToken(&module->lexer);
+
+	return exp;
+}
+
+static TutExpr* ParseDot(TutModule* module, TutExpr* pre)
+{
+	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_DOT, &module->lexer.context);
+	exp->dotx.value = pre;
+
+	Tut_GetToken(&module->lexer);
+
+	ExpectToken(module, TUT_TOK_IDENT);
+
+	exp->dotx.memberName = Tut_Strdup(module->lexer.lexeme);
 	Tut_GetToken(&module->lexer);
 
 	return exp;
@@ -399,6 +417,7 @@ static TutExpr* ParsePost(TutModule* module, TutExpr* pre)
 	switch(module->lexer.curTok)
 	{
 		case TUT_TOK_OPENPAREN: return ParseCall(module, pre);
+		case TUT_TOK_DOT: return ParseDot(module, pre);
 		
 		default:
 			return pre;
@@ -407,6 +426,18 @@ static TutExpr* ParsePost(TutModule* module, TutExpr* pre)
 
 static TutExpr* ParseUnary(TutModule* module)
 {
+	if (module->lexer.curTok == TUT_TOK_MINUS)
+	{
+		TutExpr* exp = Tut_CreateExpr(TUT_EXPR_UNARY, &module->lexer.context);
+
+		Tut_GetToken(&module->lexer);
+
+		exp->unaryx.op = module->lexer.curTok;
+		exp->unaryx.value = ParseFactor(module);
+
+		return ParsePost(module, exp);
+	}
+
 	return ParsePost(module, ParseFactor(module));
 }
 

@@ -10,23 +10,49 @@ void Tut_EmitOp(TutVM* vm, uint8_t op)
 	vm->code[vm->codeSize++] = op;
 }
 
-void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index)
+void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index, uint16_t count)
 {
-	if (global)
-		Tut_EmitOp(vm, TUT_OP_GET_GLOBAL);
+	if (count == 1)
+	{
+		if (global)
+			Tut_EmitOp(vm, TUT_OP_GETGLOBAL1);
+		else
+			Tut_EmitOp(vm, TUT_OP_GETLOCAL1);
+	}
 	else
-		Tut_EmitOp(vm, TUT_OP_GET_LOCAL);
-	
+	{
+		if (global)
+			Tut_EmitOp(vm, TUT_OP_GETGLOBALN);
+		else
+			Tut_EmitOp(vm, TUT_OP_GETLOCALN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+	}
+
 	Tut_WriteInt32(vm->code, vm->codeSize, index);
 	vm->codeSize += 4;
 }
 
-void Tut_EmitSet(TutVM* vm, TutBool global, int32_t index)
+void Tut_EmitSet(TutVM* vm, TutBool global, int32_t index, uint16_t count)
 {
-	if (global)
-		Tut_EmitOp(vm, TUT_OP_SET_GLOBAL);
+	if (count == 1)
+	{
+		if (global)
+			Tut_EmitOp(vm, TUT_OP_SETGLOBAL1);
+		else
+			Tut_EmitOp(vm, TUT_OP_SETLOCAL1);
+	}
 	else
-		Tut_EmitOp(vm, TUT_OP_SET_LOCAL);
+	{
+		if (global)
+			Tut_EmitOp(vm, TUT_OP_SETGLOBALN);
+		else
+			Tut_EmitOp(vm, TUT_OP_SETLOCALN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+	}
 
 	Tut_WriteInt32(vm->code, vm->codeSize, index);
 	vm->codeSize += 4;
@@ -109,7 +135,54 @@ void Tut_EmitPushCStr(TutVM* vm, const char* value)
 	vm->codeSize += 4;
 }
 
-void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint8_t nargs)
+void Tut_EmitPush(TutVM* vm, uint16_t count)
+{
+	if (count == 1)
+		Tut_EmitOp(vm, TUT_OP_PUSH1);
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_PUSHN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+	}
+}
+
+void Tut_EmitPop(TutVM* vm, uint16_t count)
+{
+	if (count == 1)
+		Tut_EmitOp(vm, TUT_OP_POP1);
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_POPN);
+		
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+	}
+}
+
+void Tut_EmitMove(TutVM* vm, uint16_t numObjects, uint16_t stackSpaces)
+{
+	if (numObjects == 1)
+	{
+		Tut_EmitOp(vm, TUT_OP_MOVE1);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, stackSpaces);
+		vm->codeSize += 2;
+	}
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_MOVEN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, numObjects);
+		vm->codeSize += 2;
+
+		Tut_WriteUint16(vm->code, vm->codeSize, stackSpaces);
+		vm->codeSize += 2;
+	}
+}
+
+void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint16_t nargs)
 {
 	if (!ext)
 		Tut_EmitOp(vm, TUT_OP_CALL);
@@ -119,7 +192,21 @@ void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint8_t nargs)
 	Tut_WriteInt32(vm->code, vm->codeSize, index);
 	vm->codeSize += 4;
 
-	vm->code[vm->codeSize++] = nargs;
+	Tut_WriteUint16(vm->code, vm->codeSize, nargs);
+	vm->codeSize += 2;
+}
+
+void Tut_EmitRetval(TutVM* vm, uint16_t count)
+{
+	if (count == 1)
+		Tut_EmitOp(vm, TUT_OP_RETVAL1);
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_RETVALN);
+		
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+	}
 }
 
 int32_t Tut_EmitGoto(TutVM* vm, TutBool cond, int32_t pc)

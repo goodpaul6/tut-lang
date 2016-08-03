@@ -136,18 +136,19 @@ void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index)
 }
 
 #if 1
-#define DEBUG_CYCLE(op, format, ...) if(printOp) printf("%s " format "\n", #op, __VA_ARGS__)
+#define DEBUG_CYCLE(op, format, ...) if(debugFlags & TUT_VM_DEBUG_OP) printf("%s " format "\n", #op, __VA_ARGS__)
 #else
 #define DEBUG_CYCLE(op, format, ...)
 #endif
 
-void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
+void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 {
 	if(vm->pc < 0) return;
 	
 	uint8_t op = vm->code[vm->pc++];
 
-	if(printOp) printf("%d: ", vm->pc);
+	if (debugFlags & TUT_VM_DEBUG_REGS) printf("sp=%d, fp=%d\n", vm->sp, vm->fp);
+	if(debugFlags & TUT_VM_DEBUG_OP) printf("%d: ", vm->pc);
 
 	switch(op)
 	{
@@ -200,69 +201,213 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			DEBUG_CYCLE(TUT_OP_PUSH_CSTR, "%s", data);
 		} break;
 
-		case TUT_OP_PUSH:
+		case TUT_OP_PUSHN:
+		{
+			uint16_t n = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			if (vm->sp + n > TUT_VM_STACK_SIZE)
+			{
+				fprintf(stderr, "VM Stack Overflow (TUT_OP_PUSHN)!\n");
+				vm->pc = -1;
+			}
+			vm->sp += n;
+
+			DEBUG_CYCLE(TUT_OP_PUSHN, "%d", n);
+		} break;
+
+		case TUT_OP_PUSH1:
 		{
 			if (vm->sp >= TUT_VM_STACK_SIZE)
 			{
-				fprintf(stderr, "VM Stack Overflow (TUT_OP_PUSH)!\n");
+				fprintf(stderr, "VM Stack Overflow (TUT_OP_PUSH1)!\n");
 				vm->pc = -1;
 			}
 			++vm->sp;
 
-			DEBUG_CYCLE(TUT_OP_PUSH, "");
+			DEBUG_CYCLE(TUT_OP_PUSH1, "");
 		} break;
 
-		case TUT_OP_POP:
+		case TUT_OP_POPN:
+		{
+			uint16_t n = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			if (vm->sp - n < 0)
+			{
+				fprintf(stderr, "VM Stack Underflow (TUT_OP_POPN)!\n");
+				vm->pc = -1;
+				return;
+			}
+			vm->sp -= n;
+
+			DEBUG_CYCLE(TUT_OP_POPN, "%d", n);
+		} break;
+
+		case TUT_OP_POP1:
 		{
 			if (vm->sp <= 0)
 			{
-				fprintf(stderr, "VM Stack Underflow (TUT_OP_POP)!\n");
+				fprintf(stderr, "VM Stack Underflow (TUT_OP_POP1)!\n");
 				vm->pc = -1;
 				return;
 			}
 			--vm->sp;
 
-			DEBUG_CYCLE(TUT_OP_POP, "");
+			DEBUG_CYCLE(TUT_OP_POP1, "");
+		} break;
+
+		case TUT_OP_MOVEN:
+		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+			uint16_t stackSpaces = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			int32_t targetSp = vm->sp - numObjects - stackSpaces;
+
+			if (targetSp < 0)
+			{
+				fprintf(stderr, "VM Stack Underflow (TUT_OP_MOVEN)!\n");
+				vm->pc = -1;
+				return;
+			}
+			
+			memmove(&vm->stack[targetSp], &vm->stack[vm->sp - numObjects], sizeof(TutObject) * numObjects);
+			vm->sp = targetSp + numObjects;
+
+			DEBUG_CYCLE(TUT_OP_MOVEN, "%d, %d", numObjects, stackSpaces);
 		} break;
 		
-		case TUT_OP_GET_GLOBAL:
+		case TUT_OP_MOVE1:
+		{
+			// Copied from TUT_OP_MOVEN
+			uint16_t numObjects = 1;
+			uint16_t stackSpaces = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			int32_t targetSp = vm->sp - numObjects - stackSpaces;
+
+			if (targetSp < 0)
+			{
+				fprintf(stderr, "VM Stack Underflow (TUT_OP_MOVEN)!\n");
+				vm->pc = -1;
+				return;
+			}
+
+			memmove(&vm->stack[targetSp], &vm->stack[vm->sp - numObjects], sizeof(TutObject) * numObjects);
+			vm->sp = targetSp + numObjects;
+
+			DEBUG_CYCLE(TUT_OP_MOVE1, "%d", stackSpaces);
+		} break;
+
+		case TUT_OP_GETGLOBALN:
+		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+
+			memcpy(&vm->stack[vm->sp], &vm->globals[index], sizeof(TutObject) * numObjects);
+			vm->sp += numObjects;
+
+			DEBUG_CYCLE(TUT_OP_GETGLOBALN, "%d, %d", numObjects, index);
+		} break;
+
+		case TUT_OP_GETGLOBAL1:
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
 
 			Tut_Push(vm, &vm->globals[index]);
+			DEBUG_CYCLE(TUT_OP_GETGLOBAL1, "%d", index);
+		} break;
+		 
+		case TUT_OP_SETGLOBALN:
+		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
 
-			DEBUG_CYCLE(TUT_OP_GET_GLOBAL, "%d", index);
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+
+			if (vm->sp - numObjects < 0)
+			{
+				fprintf(stderr, "Error: Stack Underflow! (TUT_OP_SETGLOBALN)\n");
+				vm->pc = -1;
+				return;
+			}
+
+			memcpy(&vm->globals[index], &vm->stack[vm->sp - numObjects], sizeof(TutObject) * numObjects);
+			vm->sp -= numObjects;
+
+			DEBUG_CYCLE(TUT_OP_SETGLOBALN, "%d, %d", numObjects, index);
 		} break;
 
-		case TUT_OP_SET_GLOBAL:
+		case TUT_OP_SETGLOBAL1:
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
 
+			if (vm->sp <= 0)
+			{
+				fprintf(stderr, "Error: Stack Underflow! (TUT_OP_SETGLOBAL1)\n");
+				vm->pc = -1;
+				return;
+			}
+
 			Tut_Pop(vm, &vm->globals[index]);
 
-			DEBUG_CYCLE(TUT_OP_SET_GLOBAL, "%d", index);
+			DEBUG_CYCLE(TUT_OP_SETGLOBAL1, "%d", index);
 		} break;
 
-		case TUT_OP_GET_LOCAL:
+		case TUT_OP_GETLOCALN:
+		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+
+			memcpy(&vm->stack[vm->sp], &vm->stack[vm->fp + index], sizeof(TutObject) * numObjects);
+			vm->sp += numObjects;
+
+			DEBUG_CYCLE(TUT_OP_GETLOCALN, "%d, %d", numObjects, index);
+		} break;
+
+		case TUT_OP_GETLOCAL1:
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
 
 			Tut_Push(vm, &vm->stack[vm->fp + index]);
 
-			DEBUG_CYCLE(TUT_OP_GET_LOCAL, "%d", index);
+			DEBUG_CYCLE(TUT_OP_GETLOCAL1, "%d", index);
 		} break;
 
-		case TUT_OP_SET_LOCAL:
+		case TUT_OP_SETLOCALN:
 		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
 			
-			Tut_Pop(vm, &vm->stack[vm->fp + index]);
+			memcpy(&vm->stack[vm->fp + index], &vm->stack[vm->sp - numObjects], sizeof(TutObject) * numObjects);
+			vm->sp -= numObjects;
 
-			DEBUG_CYCLE(TUT_OP_SET_LOCAL, "%d", index);
+			DEBUG_CYCLE(TUT_OP_SETLOCALN, "%d, %d", numObjects, index);
+		} break;
+
+		case TUT_OP_SETLOCAL1:
+		{
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+
+			Tut_Pop(vm, &vm->stack[vm->fp + index]);
+			
+			DEBUG_CYCLE(TUT_OP_SETLOCAL1, "%d", index);
 		} break;
 
 #define BIN_OP_INT(name, op) 
@@ -378,7 +523,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 		case TUT_OP_INEG:
 		{
 			int32_t i = Tut_PopInt(vm);
-			Tut_PushBool(vm, -i);
+			Tut_PushInt(vm, -i);
 
 			DEBUG_CYCLE(TUT_OP_INEG, "%d", i);
 		} break;
@@ -388,7 +533,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
 			Tut_PushBool(vm, a < b);
 
-			DEBUG_CYCLE(TUT_OP_FLT, "%d, %d", a, b);
+			DEBUG_CYCLE(TUT_OP_FLT, "%g, %g", a, b);
 		} break;
 		
 		case TUT_OP_FGT:
@@ -396,7 +541,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
 			Tut_PushBool(vm, a > b);
 
-			DEBUG_CYCLE(TUT_OP_FGT, "%d, %d", a, b);
+			DEBUG_CYCLE(TUT_OP_FGT, "%g, %g", a, b);
 		} break;
 		
 		case TUT_OP_FLTE:
@@ -404,7 +549,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
 			Tut_PushBool(vm, a <= b);
 
-			DEBUG_CYCLE(TUT_OP_FLTE, "%d, %d", a, b);
+			DEBUG_CYCLE(TUT_OP_FLTE, "%g, %g", a, b);
 		} break;
 
 		case TUT_OP_FGTE:
@@ -412,7 +557,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
 			Tut_PushBool(vm, a >= b);
 
-			DEBUG_CYCLE(TUT_OP_FGTE, "%d, %d", a, b);
+			DEBUG_CYCLE(TUT_OP_FGTE, "%g, %g", a, b);
 		} break;
 			
 		case TUT_OP_FEQ:
@@ -420,15 +565,15 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			float b = Tut_PopFloat(vm), a = Tut_PopFloat(vm);
 			Tut_PushBool(vm, a == b);
 
-			DEBUG_CYCLE(TUT_OP_FEQ, "%d, %d", a, b);
+			DEBUG_CYCLE(TUT_OP_FEQ, "%g, %g", a, b);
 		} break;
 
 		case TUT_OP_FNEG:
 		{
 			float f = Tut_PopFloat(vm);
-			Tut_PushBool(vm, -f);
+			Tut_PushFloat(vm, -f);
 
-			DEBUG_CYCLE(TUT_OP_FNEG, "%d", f);
+			DEBUG_CYCLE(TUT_OP_FNEG, "%g", f);
 		} break;
 
 		case TUT_OP_SEQ:
@@ -445,7 +590,9 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
-			uint8_t nargs = vm->code[vm->pc++];
+
+			uint16_t nargs = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
 			
 			TutReturnFrame frame;
 
@@ -465,7 +612,9 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
-			uint8_t nargs = vm->code[vm->pc++];
+
+			uint16_t nargs = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
 
 			DEBUG_CYCLE(TUT_OP_CALL_EXTERN, "%d, %d", index, nargs);
 			assert(index >= 0 && index < vm->externs.length);
@@ -474,15 +623,12 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			
 			int32_t sp = vm->sp;
 
-			TutBool hasResult = ext(vm, nargs);
-		
-			TutObject object;
-			if (hasResult)
-				Tut_Pop(vm, &object);
+			uint16_t numObjects = ext(vm, &vm->stack[sp - nargs], nargs);
 
 			vm->sp = sp - nargs;
-			if(hasResult)
-				Tut_Push(vm, &object);
+			
+			memcpy(&vm->stack[vm->sp], &vm->stack[sp], sizeof(TutObject) * numObjects);
+			vm->sp += numObjects;
 		} break;
 
 		case TUT_OP_RET:
@@ -496,18 +642,53 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			TutReturnFrame frame;
 			Tut_ArrayPop(&vm->returnFrames, &frame);
 
-			vm->sp = frame.fp;
+			vm->sp = vm->fp;
 			vm->sp -= frame.nargs;
+			vm->fp = frame.fp;
 			vm->pc = frame.pc;
 
 			DEBUG_CYCLE(TUT_OP_RET, "");
 		} break;
 
-		case TUT_OP_RETVAL:
+		case TUT_OP_RETVALN:
+		{
+			uint16_t numObjects = Tut_ReadUint16(vm->code, vm->pc);
+			vm->pc += 2;
+
+			int copySp = vm->sp - numObjects;
+
+			if (copySp < 0)
+			{
+				fprintf(stderr, "VM Stack Underflow (TUT_OP_RETVALN).\n");
+				vm->pc = -1;
+				return;
+			}
+
+			if (vm->returnFrames.length <= 0)
+			{
+				vm->pc = -1;
+				return;
+			}
+
+			TutReturnFrame frame;
+			Tut_ArrayPop(&vm->returnFrames, &frame);
+
+			vm->sp = vm->fp;
+			vm->sp -= frame.nargs;
+			vm->fp = frame.fp;
+			vm->pc = frame.pc;
+
+			memcpy(&vm->stack[vm->sp], &vm->stack[copySp], sizeof(TutObject) * numObjects);
+			vm->sp += numObjects;
+
+			DEBUG_CYCLE(TUT_OP_RETVALN, "%d", numObjects);
+		} break;
+
+		case TUT_OP_RETVAL1:
 		{
 			TutObject object;
 			Tut_Pop(vm, &object);
-
+	
 			if (vm->returnFrames.length <= 0)
 			{
 				vm->pc = -1;
@@ -524,7 +705,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 
 			Tut_Push(vm, &object);
 
-			DEBUG_CYCLE(TUT_OP_RETVAL, "");
+			DEBUG_CYCLE(TUT_OP_RETVAL1, "");
 		} break;
 
 		case TUT_OP_GOTO:
@@ -552,6 +733,7 @@ void Tut_ExecuteCycle(TutVM* vm, TutBool printOp)
 			DEBUG_CYCLE(TUT_OP_HALT, "");
 		} break;
 	}
+
 }
 
 void Tut_DestroyVM(TutVM* vm)

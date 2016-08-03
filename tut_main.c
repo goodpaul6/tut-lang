@@ -15,10 +15,10 @@ static void TestVM()
 	int32_t patchLoc = Tut_EmitGoto(&vm, TUT_FALSE, 0);
 	
 	Tut_EmitFunctionEntryPoint(&vm);
-	Tut_EmitGet(&vm, TUT_FALSE, -2);
-	Tut_EmitGet(&vm, TUT_FALSE, -1);
+	Tut_EmitGet(&vm, TUT_FALSE, -2, 1);
+	Tut_EmitGet(&vm, TUT_FALSE, -1, 1);
 	Tut_EmitOp(&vm, TUT_OP_SUBI);
-	Tut_EmitOp(&vm, TUT_OP_RETVAL);
+	Tut_EmitRetval(&vm, 1);
 	
 	Tut_PatchGoto(&vm, patchLoc, vm.codeSize);
 
@@ -53,7 +53,7 @@ static void TestCompiler(const char* filename)
 
 	vm.pc = 0;
 	while (vm.pc >= 0)
-		Tut_ExecuteCycle(&vm, TUT_FALSE);
+		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_OP | TUT_VM_DEBUG_REGS);
 }
 
 int main(int argc, char** argv)

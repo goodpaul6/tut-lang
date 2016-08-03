@@ -32,7 +32,7 @@ static TutVarDecl* MakeVarDecl(const char* name, TutTypetag* typetag)
 	decl->typetag = typetag;
 	decl->parent = NULL;
 	
-	decl->index = -1;
+	decl->index = TUT_VAR_DECL_INDEX_UNDEFINED;
 	decl->scope = -1;
 	decl->name = Tut_Strdup(name);
 
@@ -50,7 +50,6 @@ void Tut_InitSymbolTable(TutSymbolTable* table)
 
 	table->numFunctions = 0;
 	table->numExterns = 0;
-	table->numGlobals = 0;
 }
 
 TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
@@ -88,7 +87,6 @@ TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutType
 	TutVarDecl* decl = MakeVarDecl(name, typetag);
 	
 	decl->parent = table->curFunc;
-	decl->index = -((int)table->curFunc->args.length + 1);
 	decl->scope = table->curScope;
 		
 	Tut_ListAppend(&table->curFunc->args, decl);
@@ -99,18 +97,17 @@ TutVarDecl* Tut_DeclareArgument(TutSymbolTable* table, const char* name, TutType
 TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutTypetag* typetag)
 {
 	TutVarDecl* decl = MakeVarDecl(name, typetag);
+
 	decl->parent = table->curFunc;
 
 	if(table->curFunc)
 	{
-		decl->index = table->curFunc->locals.length;
 		decl->scope = table->curScope;
 		
 		Tut_ListAppend(&table->curFunc->locals, decl);
 	}
 	else
 	{
-		decl->index = table->numGlobals++;
 		decl->scope = 0;
 		
 		Tut_ListAppend(&table->globals, decl);

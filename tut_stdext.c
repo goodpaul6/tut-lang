@@ -3,9 +3,10 @@
 #include "tut_stdext.h"
 #include "tut_compiler.h"
 
-TutBool TutStdExt_Printf(TutVM* vm, uint8_t nargs)
+uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
-	const char* str = Tut_PopCString(vm);
+	const char* str = args[0].csv;
+	int argIndex = 1;
 	size_t length = strlen(str);
 
 	for (size_t i = 0; i < length; ++i)
@@ -15,17 +16,17 @@ TutBool TutStdExt_Printf(TutVM* vm, uint8_t nargs)
 			++i;
 			if (str[i] == 'i')
 			{
-				int32_t value = Tut_PopInt(vm);
+				int32_t value = args[argIndex++].iv;
 				printf("%i", value);
 			}
 			else if (str[i] == 'f')
 			{
-				float value = Tut_PopFloat(vm);
+				float value = args[argIndex++].fv;
 				printf("%f", value);
 			}
 			else if (str[i] == 's')
 			{
-				const char* str = Tut_PopCString(vm);
+				const char* str = args[argIndex++].csv;
 				printf("%s", str);
 			}
 		}
@@ -33,14 +34,23 @@ TutBool TutStdExt_Printf(TutVM* vm, uint8_t nargs)
 			putc(str[i], stdout);
 	}
 	
-	return TUT_FALSE;
+	return 0;
+}
+
+uint16_t TutStdExt_Strlen(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	const char* str = args[0].csv;
+	Tut_PushInt(vm, (int)strlen(str));
+
+	return 1;
 }
 
 void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 {
 	const TutExternDef lib[] = 
 	{
-		{ "printf", TutStdExt_Printf } 
+		{ "printf", TutStdExt_Printf },
+		{ "strlen", TutStdExt_Strlen }
 	};
 	Tut_BindLibrary(module, vm, sizeof(lib) / sizeof(lib[0]), lib);
 }

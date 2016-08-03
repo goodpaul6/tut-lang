@@ -14,9 +14,12 @@ typedef enum
 
 	TUT_EXPR_IDENT,
 	TUT_EXPR_VAR,
-	
+
+	TUT_EXPR_UNARY,
 	TUT_EXPR_BIN,
 	TUT_EXPR_PAREN,
+
+	TUT_EXPR_DOT,
 	TUT_EXPR_CALL,
 	
 	TUT_EXPR_FUNC,
@@ -26,7 +29,7 @@ typedef enum
 	TUT_EXPR_IF,
 	TUT_EXPR_WHILE,
 
-	TUT_EXPR_STRUCT_DEF
+	TUT_EXPR_STRUCT_DEF,
 } TutExprType;
 
 typedef struct TutExpr
@@ -52,6 +55,12 @@ typedef struct TutExpr
 		
 		struct
 		{
+			int op;
+			struct TutExpr* value;
+		} unaryx;
+
+		struct
+		{
 			struct TutExpr* lhs;
 			struct TutExpr* rhs;
 			int op;
@@ -59,6 +68,12 @@ typedef struct TutExpr
 		
 		struct TutExpr* parenExpr;
 		
+		struct
+		{
+			struct TutExpr* value;
+			char* memberName;
+		} dotx;
+
 		struct
 		{
 			struct TutExpr* func;

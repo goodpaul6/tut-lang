@@ -15,14 +15,27 @@ func print_vec2(v : Vec2) : void
 	printf("(%f, %f)\n", v.x, v.y);
 }
 
+func add_vec2(a : Vec2, b : Vec2) : Vec2
+{
+	var result : Vec2;
+
+	result.x = a.x + b.x;
+	result.y = a.y + b.y;
+
+	return result;
+}
+
 func _main() : void
 {
-	var pos : Vec2 = make_vec2(10, 10);
+	var pos : Vec2 = add_vec2(make_vec2(12.0, 10.0), make_vec2(10.0, 12.0));
+	var x : int = 10;
+
 	print_vec2(pos);
+	printf("%i.\n", x);
 }
 
 struct Vec2
 {
-	x : float;
+	x : Vec2;
 	y : float;
 }

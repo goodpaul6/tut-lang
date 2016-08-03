@@ -43,6 +43,8 @@ typedef struct TutTypetag
 void Tut_InitTypetag(TutTypetag* tag, TutTypetagType type);
 TutTypetag* Tut_CreatePrimitiveTypetag(const char* name);
 
+int Tut_GetTypetagCount(TutTypetag* tag);
+
 TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b); 
 const char* Tut_TypetagRepr(const TutTypetag* tag);
 
