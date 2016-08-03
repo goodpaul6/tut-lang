@@ -1,8 +1,8 @@
-extern printf(format : cstr, ...) : void
-extern strlen(cs : cstr) : int
+extern printf(format : str, ...) : void
+extern strlen(str : str) : int
 
 func _main() : void
 {
-	var str : cstr = "Hello World!";
+	var str : str = "Hello World!";
 	printf("Length of string '%s' is %i.\n", str, strlen(str));
 }

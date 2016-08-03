@@ -221,7 +221,7 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_STR:
 		{
-			exp->typetag = Tut_CreatePrimitiveTypetag("cstr");
+			exp->typetag = Tut_CreatePrimitiveTypetag("str");
 		} break;
 
 		case TUT_EXPR_VAR:
@@ -254,6 +254,8 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 		{
 			ResolveTypes(module, exp->binx.lhs);
 			ResolveTypes(module, exp->binx.rhs);
+		
+			assert(exp->binx.lhs->typetag && exp->binx.rhs->typetag);
 			
 			if (exp->binx.op != TUT_TOK_ASSIGN)
 			{
@@ -588,7 +590,7 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 
 		case TUT_EXPR_STR:
 		{
-			Tut_EmitPushCStr(vm, exp->string);
+			Tut_EmitPushStr(vm, exp->string);
 		} break;
 		
 		case TUT_EXPR_IDENT:
@@ -662,7 +664,7 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 					}
 					else CompilerError(exp, "Invalid binary operator '%s' for operation involving type '%s'.\n", Tut_TokenRepr(exp->binx.op), Tut_TypetagRepr(exp->binx.lhs->typetag));
 				}
-				else if (exp->binx.lhs->typetag->type == TUT_TYPETAG_CSTR || exp->binx.lhs->typetag->type == TUT_TYPETAG_STR)
+				else if (exp->binx.lhs->typetag->type == TUT_TYPETAG_STR)
 				{
 					if (exp->binx.op == TUT_TOK_EQUALS) Tut_EmitOp(vm, TUT_OP_SEQ);
 					else if (exp->binx.op == TUT_TOK_NEQUALS)

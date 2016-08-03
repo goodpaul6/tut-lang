@@ -10,8 +10,7 @@ typedef union
 	TutBool bv;
 	int32_t iv;
 	float fv;
-	const char* csv;
-	char* sv;
+	const char* sv;
 } TutObject;
 
 #endif

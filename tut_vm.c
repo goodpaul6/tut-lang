@@ -72,18 +72,18 @@ void Tut_PushFloat(TutVM* vm, float value)
 	Tut_Push(vm, &object);
 }
 
-void Tut_PushCString(TutVM* vm, const char* string)
-{
-	TutObject object;
-	object.csv = string;
-
-	Tut_Push(vm, &object);
-}
-
 void Tut_PushString(TutVM* vm, const char* string)
 {
 	TutObject object;
 	object.sv = Tut_Strdup(string);
+
+	Tut_Push(vm, &object);
+}
+
+void Tut_PushStringNoCopy(TutVM* vm, const char* string)
+{
+	TutObject object;
+	object.sv = string;
 
 	Tut_Push(vm, &object);
 }
@@ -112,16 +112,7 @@ float Tut_PopFloat(TutVM* vm)
 	return object.fv;
 }
 
-const char* Tut_PopCString(TutVM* vm)
-{
-
-	TutObject object;
-	Tut_Pop(vm, &object);
-
-	return object.csv;
-}
-
-char* TutPopString(TutVM* vm)
+const char* Tut_PopString(TutVM* vm)
 {
 	TutObject object;
 	Tut_Pop(vm, &object);
@@ -190,15 +181,15 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			DEBUG_CYCLE(TUT_OP_PUSH_INT, "%g", value);
 		} break;
 		
-		case TUT_OP_PUSH_CSTR:
+		case TUT_OP_PUSH_STR:
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
 			vm->pc += 4;
 			
 			const char* data = TUT_ARRAY_GET_VALUE(&vm->strings, index, const char*);
-			Tut_PushCString(vm, data);
+			Tut_PushStringNoCopy(vm, data);
 
-			DEBUG_CYCLE(TUT_OP_PUSH_CSTR, "%s", data);
+			DEBUG_CYCLE(TUT_OP_PUSH_STR, "%s", data);
 		} break;
 
 		case TUT_OP_PUSHN:
@@ -578,8 +569,8 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 
 		case TUT_OP_SEQ:
 		{
-			const char* b = Tut_PopCString(vm);
-			const char* a = Tut_PopCString(vm);
+			const char* b = Tut_PopString(vm);
+			const char* a = Tut_PopString(vm);
 
 			Tut_PushBool(vm, strcmp(a, b) == 0);
 

@@ -108,9 +108,9 @@ void Tut_EmitPushFloat(TutVM* vm, float value)
 	vm->codeSize += 4;
 }
 
-void Tut_EmitPushCStr(TutVM* vm, const char* value)
+void Tut_EmitPushStr(TutVM* vm, const char* value)
 {
-	Tut_EmitOp(vm, TUT_OP_PUSH_CSTR);
+	Tut_EmitOp(vm, TUT_OP_PUSH_STR);
 
 	int32_t index = -1;
 

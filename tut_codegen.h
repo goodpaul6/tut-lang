@@ -8,7 +8,7 @@ void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index, uint16_t count);
 void Tut_EmitSet(TutVM* vm, TutBool global, int32_t index, uint16_t count);
 void Tut_EmitPushInt(TutVM* vm, int32_t value);
 void Tut_EmitPushFloat(TutVM* vm, float value);
-void Tut_EmitPushCStr(TutVM* vm, const char* value);
+void Tut_EmitPushStr(TutVM* vm, const char* value);
 void Tut_EmitPush(TutVM* vm, uint16_t count);
 void Tut_EmitPop(TutVM* vm, uint16_t count);
 void Tut_EmitMove(TutVM* vm, uint16_t numObjects, uint16_t stackSpaces);

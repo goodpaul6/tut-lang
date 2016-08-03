@@ -53,20 +53,24 @@ static void TestCompiler(const char* filename)
 
 	vm.pc = 0;
 	while (vm.pc >= 0)
-		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_OP | TUT_VM_DEBUG_REGS);
+		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_NONE);
 }
 
 int main(int argc, char** argv)
 {
-	if(argc == 2)
+	if(argc >= 2)
 	{
 		//TestVM();
-		TestCompiler(argv[1]);
+		for (int i = 1; i < argc; ++i)
+		{
+			printf("==== %s ====\n", argv[i]);
+			TestCompiler(argv[i]);
+		}
 		getchar();
 
 		return TUT_SUCCESS;
 	}
 	
-	fprintf(stderr, "Usage:\n%s (path/to/file).\n", argv[0]);
+	fprintf(stderr, "Usage:\n%s (path/to/file)+.\n", argv[0]);
 	return TUT_FAILURE;
 }

@@ -7,7 +7,7 @@ typedef enum
 	TUT_OP_PUSH_FALSE,
 	TUT_OP_PUSH_INT,
 	TUT_OP_PUSH_FLOAT,
-	TUT_OP_PUSH_CSTR,
+	TUT_OP_PUSH_STR,
 
 	TUT_OP_PUSHN,			// push n (uint16) uninitialized objects onto stack (i.e increment stack pointer)
 	TUT_OP_PUSH1,			// push 1 ...

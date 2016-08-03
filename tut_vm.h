@@ -17,6 +17,7 @@ typedef struct
 
 typedef enum
 {
+	TUT_VM_DEBUG_NONE = 0,
 	TUT_VM_DEBUG_OP = 1,
 	TUT_VM_DEBUG_REGS = 2,
 } TutVMDebugFlags;
@@ -53,17 +54,15 @@ void Tut_PushBool(TutVM* vm, TutBool value);
 void Tut_PushInt(TutVM* vm, int32_t value);
 void Tut_PushFloat(TutVM* vm, float value);
 
-// NOTE: Does not make a copy of the string
-void Tut_PushCString(TutVM* vm, const char* string);
-
-// NOTE: Makes a copy of string
+// Makes a copy of the string
 void Tut_PushString(TutVM* vm, const char* string);
+// Does not make a copy
+void Tut_PushStringNoCopy(TutVM* vm, const char* string);
 
 TutBool Tut_PopBool(TutVM* vm);
 int32_t Tut_PopInt(TutVM* vm);
 float Tut_PopFloat(TutVM* vm);
-const char* Tut_PopCString(TutVM* vm);
-char* TutPopString(TutVM* vm);
+const char* Tut_PopString(TutVM* vm);
 
 void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index);
 

@@ -1,4 +1,4 @@
-extern printf(format : cstr, ...) : void
+extern printf(format : str, ...) : void
 
 func fact(n : int) : int
 {

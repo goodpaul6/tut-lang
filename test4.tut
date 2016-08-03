@@ -1,0 +1,28 @@
+extern printf(format : str, ...) : void
+
+struct Vec2
+{
+	x : float;
+	y : float;
+}
+
+struct Entity
+{
+	pos : Vec2;
+}
+
+func make_entity(x : float, y : float) : Entity
+{
+	var e : Entity;
+
+	e.pos.x = x;
+	e.pos.y = y;
+
+	return e;
+}
+
+func _main() : void
+{
+	var e : Entity = make_entity(10.0, 10.0);
+	printf("(%f, %f)\n", e.pos.x, e.pos.y);
+}

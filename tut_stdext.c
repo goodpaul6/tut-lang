@@ -5,7 +5,7 @@
 
 uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
-	const char* str = args[0].csv;
+	const char* str = args[0].sv;
 	int argIndex = 1;
 	size_t length = strlen(str);
 
@@ -26,7 +26,7 @@ uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
 			}
 			else if (str[i] == 's')
 			{
-				const char* str = args[argIndex++].csv;
+				const char* str = args[argIndex++].sv;
 				printf("%s", str);
 			}
 		}
@@ -39,7 +39,7 @@ uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
 
 uint16_t TutStdExt_Strlen(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
-	const char* str = args[0].csv;
+	const char* str = args[0].sv;
 	Tut_PushInt(vm, (int)strlen(str));
 
 	return 1;

@@ -32,6 +32,14 @@ static void EatToken(TutModule* module, TutToken token)
 
 static TutExpr* ParseExpr(TutModule* module);
 
+static TutExpr* ParseStatement(TutModule* module)
+{
+	TutExpr* exp = ParseExpr(module);
+	if (module->lexer.curTok == TUT_TOK_SEMICOLON)
+		Tut_GetToken(&module->lexer);
+	return exp;
+}
+
 static TutTypetag* ParseType(TutModule* module)
 {
 	ExpectToken(module, TUT_TOK_IDENT);
@@ -115,7 +123,8 @@ static TutExpr* ParseFunc(TutModule* module)
 	Tut_GetToken(&module->lexer);
 	
 	Tut_PushCurFuncDecl(&module->symbolTable, exp->funcx.decl);
-	
+	++module->symbolTable.curScope;
+
 	EatToken(module, TUT_TOK_OPENPAREN);
 
 	while(module->lexer.curTok != TUT_TOK_CLOSEPAREN)
@@ -144,7 +153,9 @@ static TutExpr* ParseFunc(TutModule* module)
 	EatToken(module, TUT_TOK_COLON);
 
 	exp->funcx.decl->returnType = ParseType(module);
-	exp->funcx.body = ParseExpr(module);
+	exp->funcx.body = ParseStatement(module);
+	
+	--module->symbolTable.curScope;
 
 	Tut_PopCurFuncDecl(&module->symbolTable);
 	
@@ -270,7 +281,7 @@ static TutExpr* ParseIf(TutModule* module)
 	Tut_GetToken(&module->lexer);
 
 	exp->ifx.cond = ParseExpr(module);
-	exp->ifx.body = ParseExpr(module);
+	exp->ifx.body = ParseStatement(module);
 
 	if (module->lexer.curTok == TUT_TOK_ELSE)
 	{
@@ -289,7 +300,7 @@ static TutExpr* ParseWhile(TutModule* module)
 	Tut_GetToken(&module->lexer);
 
 	exp->whilex.cond = ParseExpr(module);
-	exp->whilex.body = ParseExpr(module);
+	exp->whilex.body = ParseStatement(module);
 
 	return exp;
 }
@@ -416,9 +427,18 @@ static TutExpr* ParsePost(TutModule* module, TutExpr* pre)
 {
 	switch(module->lexer.curTok)
 	{
-		case TUT_TOK_OPENPAREN: return ParseCall(module, pre);
-		case TUT_TOK_DOT: return ParseDot(module, pre);
-		
+		case TUT_TOK_OPENPAREN:
+		{
+			TutExpr* exp = ParseCall(module, pre);
+			return ParsePost(module, exp);
+		} break;
+
+		case TUT_TOK_DOT: 
+		{
+			TutExpr* exp = ParseDot(module, pre);
+			return ParsePost(module, exp);
+		}
+
 		default:
 			return pre;
 	}

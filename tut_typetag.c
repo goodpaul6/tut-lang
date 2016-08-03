@@ -8,7 +8,6 @@ static const char* Names[TUT_TYPETAG_COUNT] =
 	"bool",
 	"int",
 	"float",
-	"cstr",
 	"str",
 	NULL
 };
