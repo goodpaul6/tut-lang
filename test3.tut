@@ -1,0 +1,8 @@
+extern printf(format : cstr, ...) : void
+extern strlen(cs : cstr) : int
+
+func _main() : void
+{
+	var str : cstr = "Hello World!";
+	printf("Length of string '%s' is %i.\n", str, strlen(str));
+}
