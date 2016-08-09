@@ -11,6 +11,7 @@ typedef union
 	int32_t iv;
 	float fv;
 	const char* sv;
+	void* ref;
 } TutObject;
 
 #endif

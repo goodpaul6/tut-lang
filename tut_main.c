@@ -5,6 +5,7 @@
 #include "tut_codegen.h"
 #include "tut_compiler.h"
 #include "tut_stdext.h"
+#include "tut_array.h"
 
 static void TestVM()
 {
@@ -54,6 +55,7 @@ static void TestCompiler(const char* filename)
 	vm.pc = 0;
 	while (vm.pc >= 0)
 		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_NONE);
+	getchar();
 }
 
 int main(int argc, char** argv)

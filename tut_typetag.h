@@ -12,6 +12,7 @@ typedef enum
 	TUT_TYPETAG_INT,
 	TUT_TYPETAG_FLOAT,
 	TUT_TYPETAG_STR,
+	TUT_TYPETAG_REF,
 	TUT_TYPETAG_USERTYPE,
 	TUT_TYPETAG_COUNT
 } TutTypetagType;
@@ -21,6 +22,7 @@ struct TutTypetag;
 typedef struct
 {
 	char* name;
+	int offset;
 	struct TutTypetag* typetag;
 } TutTypetagMember;
 
@@ -36,13 +38,18 @@ typedef struct TutTypetag
 			char* name;
 			TutArray members;
 		} user;
+
+		struct
+		{
+			struct TutTypetag* value;
+		} ref;
 	};
 } TutTypetag;
 
 void Tut_InitTypetag(TutTypetag* tag, TutTypetagType type);
 TutTypetag* Tut_CreatePrimitiveTypetag(const char* name);
 
-int Tut_GetTypetagCount(TutTypetag* tag);
+int Tut_GetTypetagSize(TutTypetag* tag);
 
 TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b); 
 const char* Tut_TypetagRepr(const TutTypetag* tag);

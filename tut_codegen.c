@@ -10,6 +10,67 @@ void Tut_EmitOp(TutVM* vm, uint8_t op)
 	vm->code[vm->codeSize++] = op;
 }
 
+void Tut_EmitMakeVarRef(TutVM* vm, TutBool global, int32_t index)
+{
+	if (global)
+		Tut_EmitOp(vm, TUT_OP_MAKEGLOBALREF);
+	else
+		Tut_EmitOp(vm, TUT_OP_MAKELOCALREF);
+	
+	Tut_WriteInt32(vm, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
+void Tut_EmitMakeDynRef(TutVM * vm, uint16_t offset)
+{
+	Tut_EmitOp(vm, TUT_OP_MAKEDYNAMICREF);
+
+	Tut_WriteUint16(vm, vm->codeSize, offset);
+	vm->codeSize += 2;
+}
+
+void Tut_EmitGetRef(TutVM* vm, uint16_t count, uint16_t offset)
+{
+	if (count == 1)
+	{
+		Tut_EmitOp(vm, TUT_OP_GETREF1);
+	
+		Tut_WriteUint16(vm->code, vm->codeSize, offset);
+		vm->codeSize += 2;
+	}
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_GETREFN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+
+		Tut_WriteUint16(vm->code, vm->codeSize, offset);
+		vm->codeSize += 2;
+	}
+}
+
+void Tut_EmitSetRef(TutVM* vm, uint16_t count, uint16_t offset)
+{
+	if (count == 1)
+	{
+		Tut_EmitOp(vm, TUT_OP_SETREF1);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, offset);
+		vm->codeSize += 2;
+	}
+	else
+	{
+		Tut_EmitOp(vm, TUT_OP_SETREFN);
+
+		Tut_WriteUint16(vm->code, vm->codeSize, count);
+		vm->codeSize += 2;
+
+		Tut_WriteUint16(vm->code, vm->codeSize, offset);
+		vm->codeSize += 2;
+	}
+}
+
 void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index, uint16_t count)
 {
 	if (count == 1)

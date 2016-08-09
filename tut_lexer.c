@@ -84,7 +84,9 @@ static TutToken GetToken(TutLexer* lexer)
 		}
 		
 		lexer->lexeme[i] = '\0';
-		
+
+		if (strcmp(lexer->lexeme, "true") == 0) return TUT_TOK_TRUE;
+		if (strcmp(lexer->lexeme, "false") == 0) return TUT_TOK_FALSE;
 		if (strcmp(lexer->lexeme, "if") == 0) return TUT_TOK_IF;
 		if (strcmp(lexer->lexeme, "else") == 0) return TUT_TOK_ELSE;
 		if (strcmp(lexer->lexeme, "while") == 0) return TUT_TOK_WHILE;
@@ -250,6 +252,12 @@ static TutToken GetToken(TutLexer* lexer)
 	if(lexer->last == '-')
 	{
 		lexer->last = GetChar(lexer);
+		if (lexer->last == '>')
+		{
+			lexer->last = GetChar(lexer);
+			return TUT_TOK_ARROW;
+		}
+
 		return TUT_TOK_MINUS;
 	}
 	

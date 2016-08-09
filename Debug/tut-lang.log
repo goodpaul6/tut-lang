@@ -1,3 +1,24 @@
-﻿  tut_parser.c
-  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Current Projects\tut-lang\Debug\tut-lang.exe
-  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Current Projects\tut-lang\Debug\tut-lang.pdb (Partial PDB)
+﻿  tut_compiler.c
+c:\users\apaar\desktop\dev\tut\tut_typetag.h(46): warning C4201: nonstandard extension used: nameless struct/union
+c:\users\apaar\desktop\dev\tut\tut_expr.h(125): warning C4201: nonstandard extension used: nameless struct/union
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(35): warning C4018: '<': signed/unsigned mismatch
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(159): warning C4456: declaration of 'decl' hides previous local declaration
+  c:\users\apaar\desktop\dev\tut\tut_compiler.c(151): note: see declaration of 'decl'
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(169): warning C4456: declaration of 'decl' hides previous local declaration
+  c:\users\apaar\desktop\dev\tut\tut_compiler.c(151): note: see declaration of 'decl'
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(178): warning C4456: declaration of 'decl' hides previous local declaration
+  c:\users\apaar\desktop\dev\tut\tut_compiler.c(151): note: see declaration of 'decl'
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(527): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(538): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(554): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(572): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(628): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(671): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(706): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(714): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(820): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(829): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(902): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(928): warning C4244: 'function': conversion from 'int' to 'uint16_t', possible loss of data
+  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.exe
+  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.pdb (Partial PDB)

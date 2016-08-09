@@ -44,11 +44,23 @@ static TutTypetag* ParseType(TutModule* module)
 {
 	ExpectToken(module, TUT_TOK_IDENT);
 
-	// Attempt to create a primitive type tag (i.e bool, int, cstr, etc)
+	// Attempt to create a primitive type tag (i.e bool, int, str, etc)
 	TutTypetag* tag = Tut_CreatePrimitiveTypetag(module->lexer.lexeme);
 	if(!tag)
 		tag = Tut_RegisterType(&module->symbolTable, module->lexer.lexeme);
-	
+	else if (tag->type == TUT_TYPETAG_REF)
+	{
+		Tut_GetToken(&module->lexer);
+
+		if (module->lexer.curTok == TUT_TOK_MINUS)
+		{
+			Tut_GetToken(&module->lexer);
+			tag->ref.value = ParseType(module);
+		}
+
+		return tag;
+	}
+
 	Tut_GetToken(&module->lexer);
 	return tag;
 }
@@ -322,7 +334,10 @@ static TutExpr* ParseStruct(TutModule* module)
 		ExpectToken(module, TUT_TOK_IDENT);
 
 		TutTypetagMember mem;
+
+		// Offsets are determined in FinalizeTypes
 		mem.name = Tut_Strdup(module->lexer.lexeme);
+		mem.offset = -1;
 
 		Tut_GetToken(&module->lexer);
 
@@ -343,9 +358,9 @@ static TutExpr* ParseStruct(TutModule* module)
 	return exp;
 }
 
-static TutExpr* ParseDot(TutModule* module, TutExpr* pre)
+static TutExpr* ParseDotOrArrow(TutModule* module, TutExpr* pre, TutExprType type)
 {
-	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_DOT, &module->lexer.context);
+	TutExpr* exp = Tut_CreateExpr(type, &module->lexer.context);
 	exp->dotx.value = pre;
 
 	Tut_GetToken(&module->lexer);
@@ -390,6 +405,9 @@ static TutExpr* ParseFactor(TutModule* module)
 {
 	switch(module->lexer.curTok)
 	{
+		case TUT_TOK_TRUE: return Tut_CreateExpr(TUT_EXPR_TRUE, &module->lexer.context);
+		case TUT_TOK_FALSE: return Tut_CreateExpr(TUT_EXPR_FALSE, &module->lexer.context);
+
 		case TUT_TOK_INT: return ParseInt(module);
 		case TUT_TOK_FLOAT: return ParseFloat(module);
 
@@ -435,9 +453,15 @@ static TutExpr* ParsePost(TutModule* module, TutExpr* pre)
 
 		case TUT_TOK_DOT: 
 		{
-			TutExpr* exp = ParseDot(module, pre);
+			TutExpr* exp = ParseDotOrArrow(module, pre, TUT_EXPR_DOT);
 			return ParsePost(module, exp);
-		}
+		} break;
+
+		case TUT_TOK_ARROW:
+		{
+			TutExpr* exp = ParseDotOrArrow(module, pre, TUT_EXPR_ARROW);
+			return ParsePost(module, exp);
+		} break;
 
 		default:
 			return pre;
@@ -446,14 +470,16 @@ static TutExpr* ParsePost(TutModule* module, TutExpr* pre)
 
 static TutExpr* ParseUnary(TutModule* module)
 {
-	if (module->lexer.curTok == TUT_TOK_MINUS)
+	if (module->lexer.curTok == TUT_TOK_MINUS ||
+		module->lexer.curTok == TUT_TOK_MUL ||
+		module->lexer.curTok == TUT_TOK_AND)
 	{
 		TutExpr* exp = Tut_CreateExpr(TUT_EXPR_UNARY, &module->lexer.context);
 
-		Tut_GetToken(&module->lexer);
-
 		exp->unaryx.op = module->lexer.curTok;
-		exp->unaryx.value = ParseFactor(module);
+
+		Tut_GetToken(&module->lexer);
+		exp->unaryx.value = ParsePost(module, ParseFactor(module));
 
 		return ParsePost(module, exp);
 	}

@@ -27,6 +27,88 @@ static void CompilerError(TutExpr* exp, const char* format, ...)
 	exit(1);
 }
 
+static TutTypetagMember* GetMember(TutTypetag* tag, const char* memberName)
+{
+	assert(tag);
+	assert(tag->type == TUT_TYPETAG_USERTYPE);
+
+	for (int i = 0; i < tag->user.members.length; ++i)
+	{
+		TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
+		if (strcmp(mem->name, memberName) == 0)
+			return mem;
+	}
+
+	return NULL;
+}
+
+typedef struct
+{
+	TutExpr* root;
+	TutVarDecl* decl;
+	int offset;
+} Lvalue;
+
+static TutBool GetLvalue(Lvalue* value, TutExpr* exp, const char* memberName)
+{
+	assert(exp);
+	assert(exp->typetag);
+
+	if (memberName)
+		assert(exp->typetag->type == TUT_TYPETAG_USERTYPE);
+
+	switch (exp->type)
+	{
+		case TUT_EXPR_VAR:
+		case TUT_EXPR_IDENT:
+		{
+			value->root = exp;
+			value->decl = exp->varx.decl;
+
+			if (memberName)
+				value->offset += GetMember(exp->typetag, memberName)->offset;
+
+			return TUT_TRUE;
+		} break;
+
+		case TUT_EXPR_DOT:
+		{
+			if (GetLvalue(value, exp->dotx.value, exp->dotx.memberName))
+			{
+				if (memberName)
+					value->offset += GetMember(exp->typetag, memberName)->offset;
+
+				return TUT_TRUE;
+			}
+
+			return TUT_FALSE;
+		} break;
+
+		case TUT_EXPR_ARROW:
+		{
+			TutTypetag* tag = exp->dotx.value->typetag;
+
+			assert(tag->type == TUT_TYPETAG_REF);
+			assert(tag->ref.value);
+			assert(tag->ref.value->type == TUT_TYPETAG_USERTYPE);
+
+			value->root = exp->dotx.value;
+			value->decl = NULL;
+			value->offset += GetMember(tag->ref.value, exp->dotx.memberName)->offset;
+
+			return TUT_TRUE;
+		} break;
+
+		case TUT_EXPR_PAREN:
+		{
+			return GetLvalue(value, exp->parenExpr, memberName);
+		} break;
+
+		default:
+			return TUT_FALSE;
+	}
+}
+
 static void FinalizeTypes(TutModule* module)
 {
 	TUT_LIST_EACH(node, module->symbolTable.usertypes)
@@ -37,9 +119,18 @@ static void FinalizeTypes(TutModule* module)
 			if (!t->user.defined)
 				Tut_ErrorExit("Attempted to use undefined type '%s'.\n", t->user.name);
 
-			int count = Tut_GetTypetagCount(t);
-			if (count <= 0)
+			if (t->user.members.length == 0)
 				Tut_ErrorExit("Type '%s' has no members.\n", t->user.name);
+
+			int totalSize = 0;
+			
+			for(size_t i = 0; i < t->user.members.length; ++i)
+			{
+				TutTypetagMember* mem = Tut_ArrayGet(&t->user.members, i);
+
+				mem->offset = totalSize;
+				totalSize += Tut_GetTypetagSize(mem->typetag);
+			}
 		}
 	}
 }
@@ -52,7 +143,7 @@ static void ResolveVariableIndices(TutModule* module)
 		TutVarDecl* decl = node->value;
 		decl->index = globalIndex;
 
-		globalIndex += Tut_GetTypetagCount(decl->typetag);
+		globalIndex += Tut_GetTypetagSize(decl->typetag);
 	}
 
 	TUT_LIST_EACH(node, module->symbolTable.functions)
@@ -67,33 +158,18 @@ static void ResolveVariableIndices(TutModule* module)
 			{
 				TutVarDecl* decl = argNode->value;
 
-				totalArgSize += Tut_GetTypetagCount(decl->typetag);
+				totalArgSize += Tut_GetTypetagSize(decl->typetag);
 			}
 
 			// The index of each argument is set such that
 			// the first argument has the most negative index
 
-			/* Example:
-				struct vec2
-				{
-					x : float;
-					y : float;
-				}
-
-				// totalArgSize will be 4 (4 floats)
-				// a will be assigned index -(4 - 2) - 1 = -3
-				// b will be assigned index -(2 - 2) - 1 = -1
-				func add(a : vec2, b : vec2) : vec2
-				{
-					...
-				}
-			*/
 			TUT_LIST_EACH(argNode, decl->args)
 			{
 				TutVarDecl* decl = argNode->value;
 				
 				decl->index = -totalArgSize;
-				totalArgSize -= Tut_GetTypetagCount(decl->typetag);
+				totalArgSize -= Tut_GetTypetagSize(decl->typetag);
 			}
 
 			int varIndex = 0;
@@ -102,7 +178,7 @@ static void ResolveVariableIndices(TutModule* module)
 				TutVarDecl* decl = varNode->value;
 
 				decl->index = varIndex;
-				varIndex += Tut_GetTypetagCount(decl->typetag);
+				varIndex += Tut_GetTypetagSize(decl->typetag);
 			}
 		}
 	}
@@ -114,6 +190,16 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_TRUE:
+		case TUT_EXPR_FALSE:
+		case TUT_EXPR_INT:
+		case TUT_EXPR_FLOAT:
+		case TUT_EXPR_STR:
+		case TUT_EXPR_EXTERN:
+		case TUT_EXPR_STRUCT_DEF:
+		{
+		} break;
+
 		case TUT_EXPR_VAR:
 		{
 			// Already resolved right?
@@ -149,6 +235,7 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 			ResolveSymbols(module, exp->parenExpr);
 		} break;
 
+		case TUT_EXPR_ARROW:
 		case TUT_EXPR_DOT:
 		{
 			ResolveSymbols(module, exp->dotx.value);
@@ -185,11 +272,6 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 			ResolveSymbols(module, exp->whilex.body);
 		} break;
 
-		case TUT_EXPR_STRUCT_DEF:
-		{
-			// Nothing to do
-		} break;
-
 		case TUT_EXPR_RETURN:
 		{
 			if (exp->retx.value)
@@ -209,6 +291,12 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_TRUE:
+		case TUT_EXPR_FALSE:
+		{
+			exp->typetag = Tut_CreatePrimitiveTypetag("bool");
+		} break;
+
 		case TUT_EXPR_INT:
 		{
 			exp->typetag = Tut_CreatePrimitiveTypetag("int");
@@ -239,7 +327,9 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 		{
 			ResolveTypes(module, exp->unaryx.value);
 			
-			assert(exp->unaryx.op == TUT_TOK_MINUS);
+			assert(exp->unaryx.op == TUT_TOK_MINUS ||
+				   exp->unaryx.op == TUT_TOK_MUL ||
+				   exp->unaryx.op == TUT_TOK_AND);
 
 			if (exp->unaryx.op == TUT_TOK_MINUS)
 			{
@@ -247,6 +337,22 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 					CompilerError(exp, "Unary operator '%s' cannot be applied to value of type '%s'.\n", Tut_TokenRepr(exp->unaryx.op), Tut_TypetagRepr(exp->unaryx.value->typetag));
 
 				exp->typetag = exp->unaryx.value->typetag;
+			}
+			else if (exp->unaryx.op == TUT_TOK_MUL)
+			{
+				if (exp->unaryx.value->typetag->type != TUT_TYPETAG_REF)
+					CompilerError(exp, "Cannot dereference value of type '%s'.\n", Tut_TypetagRepr(exp->unaryx.value->typetag));
+				if (!exp->unaryx.value->typetag->ref.value)
+					CompilerError(exp, "Cannot dereference unspecified reference value.\n");
+				
+				exp->typetag = exp->unaryx.value->typetag->ref.value;
+			}
+			else if (exp->unaryx.op == TUT_TOK_AND)
+			{
+				exp->typetag = Tut_CreatePrimitiveTypetag("ref");
+				assert(exp->typetag);
+
+				exp->typetag->ref.value = exp->unaryx.value->typetag;
 			}
 		} break;
 
@@ -296,27 +402,35 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 			exp->typetag = exp->parenExpr->typetag;
 		} break;
 		
+		case TUT_EXPR_ARROW:
 		case TUT_EXPR_DOT:
 		{
 			ResolveTypes(module, exp->dotx.value);
 			assert(exp->dotx.value->typetag);
 
-			if (exp->dotx.value->typetag->type != TUT_TYPETAG_USERTYPE)
-				CompilerError(exp, "Type '%s' has no members.\n", Tut_TypetagRepr(exp->dotx.value->typetag));
+			TutTypetag* tag = NULL;
 
-			TutTypetag* tag = exp->dotx.value->typetag;
-			
-			TutTypetagMember* found = NULL;
-
-			for (int i = 0; i < tag->user.members.length; ++i)
+			if (exp->type == TUT_EXPR_DOT)
 			{
-				TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
-				if (strcmp(mem->name, exp->dotx.memberName) == 0)
-				{
-					found = mem;
-					break;
-				}
+				if (exp->dotx.value->typetag->type != TUT_TYPETAG_USERTYPE)
+					CompilerError(exp, "Type '%s' has no members.\n", Tut_TypetagRepr(exp->dotx.value->typetag));
+				
+				tag = exp->dotx.value->typetag;
 			}
+			else if (exp->type == TUT_EXPR_ARROW)
+			{
+				if (exp->dotx.value->typetag->type != TUT_TYPETAG_REF)
+					CompilerError(exp, "Type '%s' is not a reference type so you cannot use '->' to index it.\n", Tut_TypetagRepr(exp->dotx.value->typetag));
+				if (!exp->dotx.value->typetag->ref.value)
+					CompilerError(exp, "Cannot use '->' operator on unspecified reference.\n");
+				if (exp->dotx.value->typetag->ref.value->type != TUT_TYPETAG_USERTYPE)
+					CompilerError(exp, "Type '%s' has no members.\n", Tut_TypetagRepr(exp->dotx.value->typetag->ref.value));
+			
+				tag = exp->dotx.value->typetag->ref.value;
+			}
+
+			assert(tag);
+			TutTypetagMember* found = GetMember(tag, exp->dotx.memberName);
 
 			if (!found)
 				CompilerError(exp, "Type '%s' has no member named '%s'.\n", Tut_TypetagRepr(tag), exp->dotx.memberName);
@@ -397,72 +511,7 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 	}
 }
 
-static int GetMemberOffset(TutTypetag* tag, const char* memberName)
-{
-	assert(tag);
-	assert(tag->type == TUT_TYPETAG_USERTYPE);
-
-	TutBool found = TUT_FALSE;
-	int offset = 0;
-	for (int i = 0; i < tag->user.members.length; ++i)
-	{
-		TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
-		if (strcmp(mem->name, memberName) == 0)
-		{
-			found = TUT_TRUE;
-			break;
-		}
-
-		offset += Tut_GetTypetagCount(mem->typetag);
-	}
-
-	assert(found);
-	return offset;
-}
-
-typedef struct
-{
-	TutVarDecl* decl;
-	int offset;
-} Lhs;
-
-static TutBool GetBaseLhs(Lhs* lhs, TutExpr* exp, const char* memberName)
-{
-	assert(exp);
-	assert(exp->typetag);
-	assert(exp->typetag->type == TUT_TYPETAG_USERTYPE);
-
-	switch (exp->type)
-	{
-		case TUT_EXPR_VAR:
-		case TUT_EXPR_IDENT:
-		{
-			lhs->decl = exp->varx.decl;
-			lhs->offset += GetMemberOffset(exp->typetag, memberName);
-			
-			return TUT_TRUE;
-		} break;
-
-		case TUT_EXPR_DOT:
-		{
-			if (GetBaseLhs(lhs, exp->dotx.value, exp->dotx.memberName))
-			{
-				lhs->offset += GetMemberOffset(exp->typetag, memberName);
-				return TUT_TRUE;
-			}
-			
-			return TUT_FALSE;
-		} break;
-
-		case TUT_EXPR_PAREN:
-		{
-			return GetBaseLhs(lhs, exp->parenExpr, memberName);
-		} break;
-
-		default:
-			return TUT_FALSE;
-	}
-}
+static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp);
 
 static void CompileAssign(TutModule* module, TutVM* vm, TutExpr* lhs)
 {
@@ -475,21 +524,52 @@ static void CompileAssign(TutModule* module, TutVM* vm, TutExpr* lhs)
 		case TUT_EXPR_IDENT:
 		{
 			assert(lhs->varx.decl);
-			Tut_EmitSet(vm, !lhs->varx.decl->parent, lhs->varx.decl->index, Tut_GetTypetagCount(lhs->varx.decl->typetag));
+			Tut_EmitSet(vm, !lhs->varx.decl->parent, lhs->varx.decl->index, Tut_GetTypetagSize(lhs->varx.decl->typetag));
 		} break;
 
 		case TUT_EXPR_DOT:
 		{
-			Lhs lhsData;
-
-			lhsData.decl = NULL;
-			lhsData.offset = 0;
+			Lvalue value = { 0 };
 
 			// p.scene.x
-			if (!GetBaseLhs(&lhsData, lhs->dotx.value, lhs->dotx.memberName))
+			if (!GetLvalue(&value, lhs->dotx.value, lhs->dotx.memberName))
 				CompilerError(lhs, "Invalid lhs in assignment expression.\n");
 
-			Tut_EmitSet(vm, !lhsData.decl->parent, lhsData.decl->index + lhsData.offset, Tut_GetTypetagCount(lhs->typetag));
+			Tut_EmitSet(vm, !value.decl->parent, value.decl->index + value.offset, Tut_GetTypetagSize(lhs->typetag));
+		} break;
+
+		case TUT_EXPR_UNARY:
+		{
+			if (lhs->unaryx.op != TUT_TOK_MUL)
+				CompilerError(lhs, "Invalid lhs in assignment expression.\n");
+			
+			assert(lhs->unaryx.value->typetag);
+			assert(lhs->unaryx.value->typetag->type == TUT_TYPETAG_REF);
+			assert(lhs->unaryx.value->typetag->ref.value);
+
+			// Push ref onto stack
+			CompileValue(module, vm, lhs->unaryx.value);
+
+			// Memcpy &stack[currentPos - size] into ref 
+			Tut_EmitSetRef(vm, Tut_GetTypetagSize(lhs->unaryx.value->typetag->ref.value), 0);
+		} break;
+
+		case TUT_EXPR_ARROW:
+		{
+			assert(lhs->dotx.value->typetag);
+			assert(lhs->dotx.value->typetag->type == TUT_TYPETAG_REF);
+			assert(lhs->dotx.value->typetag->ref.value->type == TUT_TYPETAG_USERTYPE);
+		
+			// Push ref onto stack
+			CompileValue(module, vm, lhs->dotx.value);
+			
+			TutTypetagMember* mem = GetMember(lhs->dotx.value->typetag->ref.value, lhs->dotx.memberName);
+			
+			assert(mem);
+			assert(mem->offset >= 0);
+
+			// Pop (size) values off the stack and put them into &ref[mem->offset]
+			Tut_EmitSetRef(vm, Tut_GetTypetagSize(mem->typetag), mem->offset);
 		} break;
 
 		default:
@@ -497,8 +577,6 @@ static void CompileAssign(TutModule* module, TutVM* vm, TutExpr* lhs)
 			break;
 	}
 }
-
-static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp);
 
 static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool discardReturnValue)
 {
@@ -537,7 +615,7 @@ static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool disc
 		TutExpr* arg = node->value;
 
 		assert(arg->typetag);
-		totalCount += Tut_GetTypetagCount(arg->typetag);
+		totalCount += Tut_GetTypetagSize(arg->typetag);
 
 		CompileValue(module, vm, node->value);
 	}
@@ -547,29 +625,9 @@ static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool disc
 	if (discardReturnValue && decl->returnType->type != TUT_TYPETAG_VOID)
 	{
 		TutTypetag* ret = decl->returnType;
-		Tut_EmitPop(vm, Tut_GetTypetagCount(ret));
+		Tut_EmitPop(vm, Tut_GetTypetagSize(ret));
 	}
 }
-
-// old method of getting usertypes (get each member one by one)
-#if 0
-static void CompileUsertypeAccess(TutModule* module, TutVM* vm, TutTypetag* tag, TutBool isGlobal, int index)
-{
-	assert(tag->type == TUT_TYPETAG_USERTYPE);
-	
-	int offset = 0;
-	for (int i = 0; i < tag->user.members.length; ++i)
-	{
-		TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
-
-		if (mem->typetag->type != TUT_TYPETAG_USERTYPE)
-			Tut_EmitGet(vm, isGlobal, index + offset);
-		else
-			CompileUsertypeAccess(module, vm, mem->typetag, isGlobal, index + offset);
-		offset += Tut_GetTypetagCount(mem->typetag);
-	}
-}
-#endif
 
 static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 {
@@ -578,6 +636,16 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_TRUE:
+		{
+			Tut_EmitOp(vm, TUT_OP_PUSH_TRUE);
+		} break;
+
+		case TUT_EXPR_FALSE:
+		{
+			Tut_EmitOp(vm, TUT_OP_PUSH_FALSE);
+		} break;
+
 		case TUT_EXPR_INT:
 		{
 			Tut_EmitPushInt(vm, exp->intVal);
@@ -600,12 +668,14 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 			assert(exp->varx.decl->index != TUT_VAR_DECL_INDEX_UNDEFINED);
 
 			// BAM! Copy the entire thing at once
-			Tut_EmitGet(vm, !exp->varx.decl->parent, exp->varx.decl->index, Tut_GetTypetagCount(exp->varx.decl->typetag));
+			Tut_EmitGet(vm, !exp->varx.decl->parent, exp->varx.decl->index, Tut_GetTypetagSize(exp->varx.decl->typetag));
 		} break;
 
 		case TUT_EXPR_UNARY:
 		{
-			assert(exp->unaryx.op == TUT_TOK_MINUS);
+			assert(exp->unaryx.op == TUT_TOK_MINUS ||
+				   exp->unaryx.op == TUT_TOK_AND ||
+				   exp->unaryx.op == TUT_TOK_MUL);
 
 			if (exp->unaryx.op == TUT_TOK_MINUS)
 			{
@@ -617,6 +687,31 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 					Tut_EmitOp(vm, TUT_OP_INEG);
 				else if (exp->typetag->type == TUT_TYPETAG_FLOAT)
 					Tut_EmitOp(vm, TUT_OP_FNEG);
+			}
+			else if (exp->unaryx.op == TUT_TOK_AND)
+			{
+				Lvalue value = { 0 };
+
+				if (!GetLvalue(&value, exp->unaryx.value, NULL))
+					CompilerError(exp, "Cannot create a reference to this value (possibly a temporary value).\n");
+
+				if(value.decl)
+					Tut_EmitMakeVarRef(vm, !value.decl->parent, value.decl->index + value.offset);
+				else
+				{
+					// The 'root' value is the reference
+					assert(value.root);
+					CompileValue(module, vm, value.root);
+
+					Tut_EmitMakeDynRef(vm, value.offset);
+				}
+			}
+			else if (exp->unaryx.op == TUT_TOK_MUL)
+			{
+				// Push ref onto stack
+				CompileValue(module, vm, exp->unaryx.value);
+				// memcpy ref values onto stack
+				Tut_EmitGetRef(vm, Tut_GetTypetagSize(exp->unaryx.value->typetag->ref.value), 0);
 			}
 		} break;
 
@@ -717,7 +812,7 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 					break;
 				}
 
-				amountToPop += Tut_GetTypetagCount(mem->typetag);
+				amountToPop += Tut_GetTypetagSize(mem->typetag);
 			}
 
 			assert(memIndex != -1);
@@ -728,10 +823,10 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 			for (int i = memIndex - 1; i >= 0; --i)
 			{
 				TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
-				amountToMove += Tut_GetTypetagCount(mem->typetag);
+				amountToMove += Tut_GetTypetagSize(mem->typetag);
 			}
 
-			Tut_EmitMove(vm, Tut_GetTypetagCount(exp->typetag), amountToMove);
+			Tut_EmitMove(vm, Tut_GetTypetagSize(exp->typetag), amountToMove);
 		} break;
 
 		case TUT_EXPR_CALL:
@@ -797,14 +892,14 @@ static void CompileStatement(TutModule* module, TutVM* vm, TutExpr* exp)
 			Tut_EmitFunctionEntryPoint(vm);
 
 			// Make space for each locals
-			int totalLocalCount = 0;
+			int totalLocalSize = 0;
 			TUT_LIST_EACH(node, exp->funcx.decl->locals)
 			{
 				TutVarDecl* decl = node->value;
-				totalLocalCount += Tut_GetTypetagCount(decl->typetag);
+				totalLocalSize += Tut_GetTypetagSize(decl->typetag);
 			}
-			if (totalLocalCount > 0)
-				Tut_EmitPush(vm, totalLocalCount);
+			if (totalLocalSize > 0)
+				Tut_EmitPush(vm, totalLocalSize);
 
 			CompileStatement(module, vm, exp->funcx.body);
 			
@@ -830,7 +925,7 @@ static void CompileStatement(TutModule* module, TutVM* vm, TutExpr* exp)
 				assert(exp->retx.value->typetag);
 
 				CompileValue(module, vm, exp->retx.value);
-				Tut_EmitRetval(vm, Tut_GetTypetagCount(exp->retx.value->typetag));
+				Tut_EmitRetval(vm, Tut_GetTypetagSize(exp->retx.value->typetag));
 			}
 			else
 				Tut_EmitOp(vm, TUT_OP_RET);

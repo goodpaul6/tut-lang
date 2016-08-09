@@ -3,11 +3,16 @@
 
 #include "tut_symbols.h"
 #include "tut_lexercontext.h"
+#include "tut_array.h"
+#include "tut_token.h"
 
 typedef enum
 {
 	TUT_EXPR_BLOCK,
-	
+
+	TUT_EXPR_TRUE,
+	TUT_EXPR_FALSE,
+
 	TUT_EXPR_INT,
 	TUT_EXPR_FLOAT,
 	TUT_EXPR_STR,
@@ -19,7 +24,9 @@ typedef enum
 	TUT_EXPR_BIN,
 	TUT_EXPR_PAREN,
 
+	TUT_EXPR_ARROW,
 	TUT_EXPR_DOT,
+
 	TUT_EXPR_CALL,
 	
 	TUT_EXPR_FUNC,
@@ -55,7 +62,7 @@ typedef struct TutExpr
 		
 		struct
 		{
-			int op;
+			TutToken op;
 			struct TutExpr* value;
 		} unaryx;
 
@@ -68,6 +75,7 @@ typedef struct TutExpr
 		
 		struct TutExpr* parenExpr;
 		
+		// Used by both EXPR_DOT and EXPR_ARROW
 		struct
 		{
 			struct TutExpr* value;
@@ -118,6 +126,7 @@ typedef struct TutExpr
 } TutExpr;
 
 TutExpr* Tut_CreateExpr(TutExprType type, const TutLexerContext* context);
+void Tut_FlattenExpr(TutExpr* exp, TutArray* into);
 void Tut_DestroyExpr(TutExpr* expr);
 
 #endif

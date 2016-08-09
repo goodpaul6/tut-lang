@@ -11,7 +11,7 @@
 
 typedef struct
 {
-	uint8_t nargs;
+	uint16_t nargs;
 	int32_t pc, fp;
 } TutReturnFrame;
 
@@ -43,7 +43,7 @@ typedef struct
 } TutVM;
 
 // Externs return number of values pushed onto the stack (0 if none are returned)
-typedef uint16_t(*TutVMExternFunction)(TutVM* vm, const TutObject* args, uint8_t nargs);
+typedef uint16_t(*TutVMExternFunction)(TutVM* vm, const TutObject* args, uint16_t nargs);
 
 void Tut_InitVM(TutVM* vm);
 
@@ -59,10 +59,13 @@ void Tut_PushString(TutVM* vm, const char* string);
 // Does not make a copy
 void Tut_PushStringNoCopy(TutVM* vm, const char* string);
 
+void Tut_PushRef(TutVM* vm, void* ref);
+
 TutBool Tut_PopBool(TutVM* vm);
 int32_t Tut_PopInt(TutVM* vm);
 float Tut_PopFloat(TutVM* vm);
 const char* Tut_PopString(TutVM* vm);
+void* Tut_PopRef(TutVM* vm);
 
 void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index);
 

@@ -9,6 +9,10 @@ typedef enum
 	TUT_OP_PUSH_FLOAT,
 	TUT_OP_PUSH_STR,
 
+	TUT_OP_MAKEGLOBALREF,	// reference to global variable
+	TUT_OP_MAKELOCALREF,	// refernece to local variable
+	TUT_OP_MAKEDYNAMICREF,	// reference to reference variable (requires uint16 offset, reference on stack)
+
 	TUT_OP_PUSHN,			// push n (uint16) uninitialized objects onto stack (i.e increment stack pointer)
 	TUT_OP_PUSH1,			// push 1 ...
 	TUT_OP_POPN,			// pop n (uint16) objects off of the stack (decrement stack pointer, usually to discard function return value)
@@ -31,6 +35,12 @@ typedef enum
 	TUT_OP_SETLOCALN,
 	TUT_OP_SETLOCAL1,
 	
+	TUT_OP_GETREFN,			// push n (uint16) values from ref at offset (uint16) (on the stack) onto the stack
+	TUT_OP_GETREF1,			// push 1 ...
+
+	TUT_OP_SETREFN,			// pop n (uint16) values from the stack at vm->sp + offset (uint16) into the referenced memory (TutObject*)
+	TUT_OP_SETREF1,			// pop 1 ...
+
 	TUT_OP_ADDI,
 	TUT_OP_SUBI,
 	TUT_OP_MULI,

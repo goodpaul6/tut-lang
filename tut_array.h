@@ -36,7 +36,7 @@ void Tut_ArrayInsert(TutArray* array, size_t index, const void* value);
 
 void Tut_ArrayTraverse(TutArray* array, Tut_ArrayTraverser traverser, void* data);
 
-void* Tut_GetArraySortData(TutArray* array);
+void* Tut_GetArraySortData();
 void Tut_ArraySort(TutArray* array, Tut_ArrayComparator comparator, void* data);
 
 void Tut_ArrayClear(TutArray* array);

@@ -4,6 +4,9 @@
 
 static const char* Names[TUT_TOK_COUNT] = 
 {
+	"true",
+	"false",
+
 	"integer literal",
 	"float literal",
 	"string literal",
@@ -30,6 +33,7 @@ static const char* Names[TUT_TOK_COUNT] =
 	";",
 	",",
 	".",
+	"->",
 	"...",
 	
 	"+",

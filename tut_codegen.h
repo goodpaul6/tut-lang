@@ -4,6 +4,10 @@
 #include "tut_vm.h"
 
 void Tut_EmitOp(TutVM* vm, uint8_t op);
+void Tut_EmitMakeVarRef(TutVM* vm, TutBool global, int32_t index);
+void Tut_EmitMakeDynRef(TutVM* vm, uint16_t offset);
+void Tut_EmitGetRef(TutVM* vm, uint16_t count, uint16_t offset);
+void Tut_EmitSetRef(TutVM* vm, uint16_t count, uint16_t offset);
 void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index, uint16_t count);
 void Tut_EmitSet(TutVM* vm, TutBool global, int32_t index, uint16_t count);
 void Tut_EmitPushInt(TutVM* vm, int32_t value);

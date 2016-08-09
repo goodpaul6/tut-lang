@@ -8,6 +8,7 @@ struct Vec2
 
 struct Entity
 {
+	alive : bool;
 	pos : Vec2;
 }
 
