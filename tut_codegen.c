@@ -17,7 +17,7 @@ void Tut_EmitMakeVarRef(TutVM* vm, TutBool global, int32_t index)
 	else
 		Tut_EmitOp(vm, TUT_OP_MAKELOCALREF);
 	
-	Tut_WriteInt32(vm, vm->codeSize, index);
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
 	vm->codeSize += 4;
 }
 
@@ -25,7 +25,7 @@ void Tut_EmitMakeDynRef(TutVM * vm, uint16_t offset)
 {
 	Tut_EmitOp(vm, TUT_OP_MAKEDYNAMICREF);
 
-	Tut_WriteUint16(vm, vm->codeSize, offset);
+	Tut_WriteUint16(vm->code, vm->codeSize, offset);
 	vm->codeSize += 2;
 }
 
@@ -198,6 +198,8 @@ void Tut_EmitPushStr(TutVM* vm, const char* value)
 
 void Tut_EmitPush(TutVM* vm, uint16_t count)
 {
+	if (count == 0) return;
+
 	if (count == 1)
 		Tut_EmitOp(vm, TUT_OP_PUSH1);
 	else
@@ -211,6 +213,8 @@ void Tut_EmitPush(TutVM* vm, uint16_t count)
 
 void Tut_EmitPop(TutVM* vm, uint16_t count)
 {
+	if (count == 0) return;
+
 	if (count == 1)
 		Tut_EmitOp(vm, TUT_OP_POP1);
 	else

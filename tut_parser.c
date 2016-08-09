@@ -481,7 +481,7 @@ static TutExpr* ParseUnary(TutModule* module)
 		Tut_GetToken(&module->lexer);
 		exp->unaryx.value = ParsePost(module, ParseFactor(module));
 
-		return ParsePost(module, exp);
+		return exp;
 	}
 
 	return ParsePost(module, ParseFactor(module));

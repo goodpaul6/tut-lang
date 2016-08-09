@@ -793,40 +793,40 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 			assert(exp->dotx.value->typetag->type == TUT_TYPETAG_USERTYPE);
 
 			CompileValue(module, vm, exp->dotx.value);
+
 			// Every value of the structure is pushed onto the stack
 			//                x   y   z
 			// stack = [10, { 20, 30, 40 }], where curly braces denote values in the struct
 			// if we wanna get at y, we have to pop z and then move y's value to x
-			int amountToPop = 0;
-			int memIndex = -1;
-
+	
 			TutTypetag* tag = exp->dotx.value->typetag;
+			TutTypetagMember* mem = GetMember(tag, exp->dotx.memberName);
 
-			for (int i = tag->user.members.length - 1; i >= 0; --i)
-			{
-				TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
+			int size = Tut_GetTypetagSize(tag);
+			int memberSize = Tut_GetTypetagSize(exp->typetag);
 
-				if (strcmp(mem->name, exp->dotx.memberName) == 0)
-				{
-					memIndex = i;
-					break;
-				}
-
-				amountToPop += Tut_GetTypetagSize(mem->typetag);
-			}
-
-			assert(memIndex != -1);
+			// in the case illustrated above, (size = 3, mem->offset = 1, and memberSize = 1)
+			// so amountToPop = 1
+			int amountToPop = size - mem->offset - memberSize;
+			int amountToMove = mem->offset;
 
 			Tut_EmitPop(vm, amountToPop);
-			
-			int amountToMove = 0;
-			for (int i = memIndex - 1; i >= 0; --i)
-			{
-				TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
-				amountToMove += Tut_GetTypetagSize(mem->typetag);
-			}
+			Tut_EmitMove(vm, memberSize, amountToMove);
+		} break;
 
-			Tut_EmitMove(vm, Tut_GetTypetagSize(exp->typetag), amountToMove);
+		case TUT_EXPR_ARROW:
+		{
+			assert(exp->dotx.value->typetag);
+			assert(exp->dotx.value->typetag->type == TUT_TYPETAG_REF);
+			assert(exp->dotx.value->typetag->ref.value->type == TUT_TYPETAG_USERTYPE);
+
+			// Push ref onto stack
+			CompileValue(module, vm, exp->dotx.value);
+
+			TutTypetagMember* mem = GetMember(exp->dotx.value->typetag->ref.value, exp->dotx.memberName);
+			assert(mem);
+
+			Tut_EmitGetRef(vm, Tut_GetTypetagSize(mem->typetag), mem->offset);
 		} break;
 
 		case TUT_EXPR_CALL:

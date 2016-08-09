@@ -221,7 +221,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 
 			Tut_PushRef(vm, &vm->stack[vm->fp + index]);
 
-			DEBUG_CYCLE(TUT_OP_MAKEGLOBALREF, "%d", index);
+			DEBUG_CYCLE(TUT_OP_MAKELOCALREF, "%d", index);
 		} break;
 
 		case TUT_OP_MAKEDYNAMICREF:
@@ -500,7 +500,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 		} break;
 
 #define BIN_OP_INT(name, op) 
-#define BIN_OP_FLOAT(name, op) case name: { float b = Tut_PopFloat(vm); float a = Tut_PopFloat(vm); Tut_PushFloat(vm, a op b); } break;
+#define BIN_OP_FLOAT(name, op) case name: { float b = Tut_PopFloat(vm); float a = Tut_PopFloat(vm); Tut_PushFloat(vm, a op b); DEBUG_CYCLE(name, "%f, %f", a, b); } break;
 		case TUT_OP_ADDI: 
 		{ 
 			int32_t b = Tut_PopInt(vm); 
@@ -821,6 +821,10 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			vm->pc = -1;
 			DEBUG_CYCLE(TUT_OP_HALT, "");
 		} break;
+
+		default:
+			DEBUG_CYCLE(INVALID_OP);
+			break;
 	}
 
 }

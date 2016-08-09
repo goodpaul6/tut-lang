@@ -8,11 +8,8 @@ struct Entity
 
 func move_entity(e : ref-Entity, x : float, y : float) : void
 {
-	var xr : ref-float = &e->x;
-	var yr : ref-float = &e->y;
-
-	*xr = x;
-	*yr = y;
+	e->x = e->x + x;
+	e->y = e->y + y;
 }
 
 func _main() : void
@@ -22,7 +19,7 @@ func _main() : void
 	e.x = 10.0;
 	e.y = 10.0;
 
-	printf("before moving %i, %i\n", e.x, e.y);
+	printf("before moving %f, %f\n", e.x, e.y);
 	move_entity(&e, 10.0, 20.0);
-	printf("after moving %i, %i\n", e.x, e.y);
+	printf("after moving %f, %f\n", e.x, e.y);
 }
