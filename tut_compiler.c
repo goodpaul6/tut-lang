@@ -200,6 +200,11 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		{
 		} break;
 
+		case TUT_EXPR_CAST:
+		{
+			ResolveSymbols(module, exp->castx.value);
+		} break;
+
 		case TUT_EXPR_VAR:
 		{
 			// Already resolved right?
@@ -447,6 +452,12 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 			TUT_LIST_EACH(node, exp->callx.args)
 				ResolveTypes(module, node->value);
+		} break;
+
+		case TUT_EXPR_CAST:
+		{
+			ResolveTypes(module, exp->castx.value);
+			exp->typetag = exp->castx.typetag;
 		} break;
 
 		case TUT_EXPR_BLOCK:
@@ -828,6 +839,11 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 
 			Tut_EmitGetRef(vm, Tut_GetTypetagSize(mem->typetag), mem->offset);
 		} break;
+		
+		case TUT_EXPR_CAST:
+		{
+			CompileValue(module, vm, exp->castx.value);
+		} break;
 
 		case TUT_EXPR_CALL:
 		{
@@ -969,18 +985,24 @@ void Tut_CompileModule(TutModule* module, TutVM* vm)
 
 	int32_t pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, decl->index, int32_t);
 	Tut_PatchGoto(vm, patchLoc, pc);
+
+	int numExterns = 0;
+	TUT_LIST_EACH(node, module->symbolTable.functions)
+	{
+		TutFuncDecl* decl = node->value;
+		if (decl->type == TUT_FUNC_DECL_EXTERN)
+			++numExterns;
+	}
+
+	void* value = NULL;
+
+	Tut_ArrayResize(&vm->externs, numExterns, &value);
+	Tut_ArrayResize(&vm->externNames, numExterns, &value);
 }
 
-void Tut_BindLibrary(TutModule* module, TutVM* vm, uint32_t numExterns, const TutExternDef* externs)
+void Tut_BindExternFindIndex(TutModule* module, TutVM* vm, const char* name, TutVMExternFunction fn)
 {
-	for (uint32_t i = 0; i < numExterns; ++i)
-	{
-		const TutExternDef* def = &externs[i];
-
-		TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, def->name);
-		if (!decl || decl->type != TUT_FUNC_DECL_EXTERN)
-			continue;
-
-		Tut_BindExtern(vm, def->function, decl->index);
-	}
+	TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, name);
+	if (decl && decl->type == TUT_FUNC_DECL_EXTERN && decl->index >= 0)
+		Tut_BindExtern(vm, decl->index, name, fn);
 }

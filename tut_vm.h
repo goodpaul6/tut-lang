@@ -31,6 +31,8 @@ typedef struct
 	TutArray strings;
 	
 	TutArray functionPcs;
+
+	TutArray externNames;
 	TutArray externs;
 
 	TutArray returnFrames;
@@ -67,7 +69,7 @@ float Tut_PopFloat(TutVM* vm);
 const char* Tut_PopString(TutVM* vm);
 void* Tut_PopRef(TutVM* vm);
 
-void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index);
+void Tut_BindExtern(TutVM* vm, uint32_t index, const char* name, TutVMExternFunction ext);
 
 void Tut_ExecuteCycle(TutVM* vm, int debugFlags);
 

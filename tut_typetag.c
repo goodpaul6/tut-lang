@@ -74,9 +74,11 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 	}
 	else if (a->type == TUT_TYPETAG_REF)
 	{
+		// ref-x == ref-x
+		// ref == ref-x
+		// ref == ref
 		if (a->ref.value && b->ref.value)
 			return Tut_CompareTypes(a->ref.value, b->ref.value);
-		return TUT_FALSE;
 	}
 	
 	return TUT_TRUE;	

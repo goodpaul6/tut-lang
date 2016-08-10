@@ -1,0 +1,14 @@
+extern printf(format : str, ...) : void;
+extern malloc(size : int) : ref;
+extern memcpy(dest : ref, src : ref, size : int) : ref;
+extern free(r : ref) : void;
+
+func _main() : void
+{
+	var r : ref = malloc(4);
+	var f : float = 10.0;
+
+	memcpy(r, &f, 4);
+
+	printf("%f\n", *cast(r, ref-float));
+}

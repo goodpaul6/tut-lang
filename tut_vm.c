@@ -15,6 +15,8 @@ void Tut_InitVM(TutVM* vm)
 	Tut_InitArray(&vm->functionPcs, sizeof(int32_t));
 
 	Tut_InitArray(&vm->returnFrames, sizeof(TutReturnFrame));
+	
+	Tut_InitArray(&vm->externNames, sizeof(const char*));
 	Tut_InitArray(&vm->externs, sizeof(TutVMExternFunction));
 
 	vm->codeSize = 0;
@@ -136,9 +138,14 @@ void* Tut_PopRef(TutVM* vm)
 	return object.ref;
 }
 
-void Tut_BindExtern(TutVM* vm, TutVMExternFunction ext, uint32_t index)
+void Tut_BindExtern(TutVM* vm, uint32_t index, const char* name, TutVMExternFunction ext)
 {
-	assert(index < vm->externs.length);
+	assert(index < vm->externNames.length &&
+		   index < vm->externs.length);
+	
+	const char* str = Tut_Strdup(name);
+
+	Tut_ArraySet(&vm->externNames, index, &str);
 	Tut_ArraySet(&vm->externs, index, &ext);
 }
 
@@ -190,7 +197,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			float value = TUT_ARRAY_GET_VALUE(&vm->floats, index, float);
 			Tut_PushFloat(vm, value);
 
-			DEBUG_CYCLE(TUT_OP_PUSH_INT, "%g", value);
+			DEBUG_CYCLE(TUT_OP_PUSH_FLOAT, "%f", value);
 		} break;
 
 		case TUT_OP_PUSH_STR:
@@ -705,7 +712,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			uint16_t nargs = Tut_ReadUint16(vm->code, vm->pc);
 			vm->pc += 2;
 
-			DEBUG_CYCLE(TUT_OP_CALL_EXTERN, "%d, %d", index, nargs);
+			DEBUG_CYCLE(TUT_OP_CALL_EXTERN, "%s, %d", TUT_ARRAY_GET_VALUE(&vm->externNames, index, const char*), nargs);
 			assert(index >= 0 && index < vm->externs.length);
 
 			TutVMExternFunction ext = TUT_ARRAY_GET_VALUE(&vm->externs, index, TutVMExternFunction);

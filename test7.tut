@@ -1,0 +1,39 @@
+extern printf(format : str, ...) : void;
+extern malloc(size : int) : ref;
+extern memcpy(dest : ref, src : ref, size : int) : ref;
+extern free(r : ref) : void;
+
+struct Point
+{
+	x : float;
+	y : float;
+}
+
+struct Array
+{
+	datumSize : int;
+	length : int;
+	data : ref;
+}
+
+func make_array(length : int, datumSize : int) : Array
+{
+	var a : Array;
+
+	a.datumSize = datumSize;
+	a.length = length;
+	a.data = malloc(length * datumSize);
+
+	return a;
+}
+
+func array_set(a : ref-Array, index : int, value : ref) : void
+{
+	memcpy(a->data)
+}
+
+func _main() : void
+{
+	var points : ref-Point = malloc(8 * 10)
+
+}

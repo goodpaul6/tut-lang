@@ -373,6 +373,25 @@ static TutExpr* ParseDotOrArrow(TutModule* module, TutExpr* pre, TutExprType typ
 	return exp;
 }
 
+static TutExpr* ParseCast(TutModule* module)
+{
+	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_CAST, &module->lexer.context);
+
+	Tut_GetToken(&module->lexer);
+
+	EatToken(module, TUT_TOK_OPENPAREN);
+	
+	exp->castx.value = ParseExpr(module);
+
+	EatToken(module, TUT_TOK_COMMA);
+
+	exp->castx.typetag = ParseType(module);
+
+	EatToken(module, TUT_TOK_CLOSEPAREN);
+
+	return exp;
+}
+
 static TutExpr* ParseCall(TutModule* module, TutExpr* pre)
 {
 	// TODO: Eventually allow for any expression to be callable
@@ -433,6 +452,8 @@ static TutExpr* ParseFactor(TutModule* module)
 		
 		case TUT_TOK_OPENCURLY: return ParseBlock(module);
 	
+		case TUT_TOK_CAST: return ParseCast(module);
+
 		default:		
 			ParseError(module, "Unexpected token '%s'\n", Tut_TokenRepr(module->lexer.curTok));			
 			break;

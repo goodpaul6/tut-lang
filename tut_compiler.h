@@ -4,13 +4,7 @@
 #include "tut_module.h"
 #include "tut_vm.h"
 
-typedef struct
-{
-	const char* name;
-	TutVMExternFunction function;
-} TutExternDef;
-
 void Tut_CompileModule(TutModule* module, TutVM* vm);
-void Tut_BindLibrary(TutModule* module, TutVM* vm, uint32_t numExterns, const TutExternDef* externs);
+void Tut_BindExternFindIndex(TutModule* module, TutVM* vm, const char* name, TutVMExternFunction fn);
 
 #endif

@@ -1,9 +1,11 @@
 #include <string.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include "tut_stdext.h"
 #include "tut_compiler.h"
 
-uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
+static uint16_t ExtPrintf(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
 	const char* str = args[0].sv;
 	int argIndex = 1;
@@ -37,7 +39,7 @@ uint16_t TutStdExt_Printf(TutVM* vm, const TutObject* args, uint16_t nargs)
 	return 0;
 }
 
-uint16_t TutStdExt_Strlen(TutVM* vm, const TutObject* args, uint16_t nargs)
+static uint16_t ExtStrlen(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
 	const char* str = args[0].sv;
 	Tut_PushInt(vm, (int)strlen(str));
@@ -45,12 +47,39 @@ uint16_t TutStdExt_Strlen(TutVM* vm, const TutObject* args, uint16_t nargs)
 	return 1;
 }
 
+static uint16_t ExtMalloc(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	assert(args[0].iv >= 0);
+	void* mem = Tut_Malloc(args[0].iv);
+
+	Tut_PushRef(vm, mem);
+
+	return 1;
+}
+
+static uint16_t ExtMemcpy(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	assert(args[0].ref && args[1].ref);
+	
+	size_t sizeInBytes = (size_t)args[2].iv;
+
+	void* ref = memcpy(args[0].ref, args[1].ref, sizeInBytes);
+	Tut_PushRef(vm, ref);
+
+	return 1;
+}
+
+static uint16_t ExtFree(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	Tut_Free(args[0].ref);
+	return 0;
+}
+
 void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 {
-	const TutExternDef lib[] = 
-	{
-		{ "printf", TutStdExt_Printf },
-		{ "strlen", TutStdExt_Strlen }
-	};
-	Tut_BindLibrary(module, vm, sizeof(lib) / sizeof(lib[0]), lib);
+	Tut_BindExternFindIndex(module, vm, "printf", ExtPrintf);
+	Tut_BindExternFindIndex(module, vm, "strlen", ExtStrlen);
+	Tut_BindExternFindIndex(module, vm, "malloc", ExtMalloc);
+	Tut_BindExternFindIndex(module, vm, "memcpy", ExtMemcpy);
+	Tut_BindExternFindIndex(module, vm, "free", ExtFree);
 }

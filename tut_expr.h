@@ -36,6 +36,7 @@ typedef enum
 	TUT_EXPR_IF,
 	TUT_EXPR_WHILE,
 
+	TUT_EXPR_CAST,
 	TUT_EXPR_STRUCT_DEF,
 } TutExprType;
 
@@ -117,6 +118,12 @@ typedef struct TutExpr
 			struct TutExpr* cond;
 			struct TutExpr* body;
 		} whilex;
+
+		struct
+		{
+			struct TutExpr* value;
+			TutTypetag* typetag;
+		} castx;
 		
 		struct
 		{

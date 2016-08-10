@@ -12,6 +12,8 @@ static const char* Names[TUT_TOK_COUNT] =
 	"string literal",
 	"identifier",
 	
+	"cast",
+
 	"var",
 	"func",
 	"extern",

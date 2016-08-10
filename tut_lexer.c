@@ -95,6 +95,7 @@ static TutToken GetToken(TutLexer* lexer)
 		if (strcmp(lexer->lexeme, "return") == 0) return TUT_TOK_RETURN;
 		if (strcmp(lexer->lexeme, "extern") == 0) return TUT_TOK_EXTERN;
 		if (strcmp(lexer->lexeme, "struct") == 0) return TUT_TOK_STRUCT;
+		if (strcmp(lexer->lexeme, "cast") == 0) return TUT_TOK_CAST;
 
 		return TUT_TOK_IDENT;
 	}
