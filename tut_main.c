@@ -54,7 +54,7 @@ static void TestCompiler(const char* filename)
 
 	vm.pc = 0;
 	while (vm.pc >= 0)
-		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_OP);
+		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_NONE);
 	getchar();
 }
 

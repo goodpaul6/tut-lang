@@ -69,6 +69,15 @@ static uint16_t ExtMemcpy(TutVM* vm, const TutObject* args, uint16_t nargs)
 	return 1;
 }
 
+static uint16_t ExtRadd(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	assert(args[0].ref);
+
+	Tut_PushRef(vm, (void*)((intptr_t)args[0].ref + args[1].iv));
+
+	return 1;
+}
+
 static uint16_t ExtFree(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
 	Tut_Free(args[0].ref);
@@ -81,5 +90,6 @@ void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 	Tut_BindExternFindIndex(module, vm, "strlen", ExtStrlen);
 	Tut_BindExternFindIndex(module, vm, "malloc", ExtMalloc);
 	Tut_BindExternFindIndex(module, vm, "memcpy", ExtMemcpy);
+	Tut_BindExternFindIndex(module, vm, "radd", ExtRadd);
 	Tut_BindExternFindIndex(module, vm, "free", ExtFree);
 }

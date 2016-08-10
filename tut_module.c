@@ -25,6 +25,8 @@ void Tut_InitModuleFromFile(TutModule* module, const char* filename)
 	Tut_InitLexerFromFile(&module->lexer, file);
 	fclose(file);
 	
+	module->lexer.context.filename = filename;
+
 	Tut_InitSymbolTable(&module->symbolTable);
 	Tut_InitList(&module->exprList);
 	

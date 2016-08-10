@@ -1,6 +1,5 @@
-﻿  tut_vm.c
-c:\users\apaar\desktop\dev\tut\tut_vm.c(716): warning C4018: '<': signed/unsigned mismatch
-c:\users\apaar\desktop\dev\tut\tut_vm.c(833): warning C4003: not enough actual parameters for macro 'DEBUG_CYCLE'
-c:\users\apaar\desktop\dev\tut\tut_vm.c(839): warning C4100: 'vm': unreferenced formal parameter
+﻿  tut_module.c
+c:\users\apaar\desktop\dev\tut\tut_typetag.h(46): warning C4201: nonstandard extension used: nameless struct/union
+c:\users\apaar\desktop\dev\tut\tut_module.c(36): warning C4100: 'module': unreferenced formal parameter
   tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.exe
   tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.pdb (Partial PDB)

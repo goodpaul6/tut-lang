@@ -1,13 +1,8 @@
 extern printf(format : str, ...) : void;
 extern malloc(size : int) : ref;
 extern memcpy(dest : ref, src : ref, size : int) : ref;
+extern radd(r : ref, offset : int) : ref;
 extern free(r : ref) : void;
-
-struct Point
-{
-	x : float;
-	y : float;
-}
 
 struct Array
 {
@@ -29,11 +24,33 @@ func make_array(length : int, datumSize : int) : Array
 
 func array_set(a : ref-Array, index : int, value : ref) : void
 {
-	memcpy(a->data)
+	memcpy(radd(a->data, index * a->datumSize), value, a->datumSize);
+}
+
+func array_get(a : ref-Array, index : int) : ref
+{
+	return radd(a->data, index * a->datumSize);
 }
 
 func _main() : void
 {
-	var points : ref-Point = malloc(8 * 10)
-
+	var ints : Array = make_array(10, 4);
+	
+	var i : int = 0;
+		
+	while i < 10
+	{
+		array_set(&ints, i, &i);
+		i = i + 1;
+	}
+	
+	i = 0
+	while i < 10
+	{
+		var ri  : ref-int = array_get(&ints, i);
+		printf("%i\n", *ri); 
+		i = i + 1;
+	}
+	
+	free(ints.data);
 }
