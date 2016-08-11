@@ -1,0 +1,13 @@
+﻿  tut_typetag.c
+  tut_symbols.c
+  tut_stdext.c
+  tut_parser.c
+  tut_module.c
+  tut_main.c
+  tut_expr.c
+  tut_compiler.c
+c:\users\apaar\desktop\dev\tut\tut_compiler.c(16): warning C4477: 'fprintf' : format string '%.*s' requires an argument of type 'int', but variadic argument 1 has type '__int64'
+  c:\users\apaar\desktop\dev\tut\tut_compiler.c(16): note: this argument is used as a precision
+  Generating Code...
+  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\x64\Debug\tut-lang.exe
+  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\x64\Debug\tut-lang.pdb (Partial PDB)

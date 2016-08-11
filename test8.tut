@@ -1,0 +1,12 @@
+// nested functions test
+extern printf(format : str, ...) : void;
+
+func _main() : void
+{
+	func add(x : int, y : int) : int
+	{
+		return x + y;
+	}
+	
+	printf("%i\n", add(10, 20));
+}

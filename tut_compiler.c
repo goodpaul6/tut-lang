@@ -251,7 +251,7 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 			TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, exp->callx.func->varx.name);
 			if (!decl)
 				CompilerError(exp, "Attempted to call non-existent function '%s'\n", exp->callx.func->varx.name);
-
+			
 			TUT_LIST_EACH(node, exp->callx.args)
 				ResolveSymbols(module, node->value);
 		} break;

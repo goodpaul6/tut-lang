@@ -4,4 +4,8 @@
     <LocalDebuggerCommandArguments>test1.tut test2.tut test3.tut test4.tut test5.tut test6.tut test7.tut</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommandArguments>test1.tut test2.tut test3.tut test4.tut test5.tut test6.tut test7.tut test8.tut</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>
