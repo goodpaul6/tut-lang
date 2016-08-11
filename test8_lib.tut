@@ -1,0 +1,24 @@
+module test_lib
+
+extern printf(format : str, ...) : void
+
+struct Point
+{
+	x : int;
+	y : int;
+}
+
+func make_point(x : int, y : int) : Point
+{
+	var p : Point;
+	
+	p.x = x;
+	p.y = y;
+	
+	return p;
+}
+
+func print_point(p : Point) : void
+{
+	printf("(%i, %i)\n", p.x, p.y);
+}

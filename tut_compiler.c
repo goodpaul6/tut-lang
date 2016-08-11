@@ -13,7 +13,7 @@ static void CompilerError(TutExpr* exp, const char* format, ...)
 {
 	char* lineEnd = strchr(exp->context.lineStart, '\n');
 	if (lineEnd)
-		fprintf(stderr, "%.*s\n", lineEnd - exp->context.lineStart, exp->context.lineStart);
+		fprintf(stderr, "%.*s\n", (int)(lineEnd - exp->context.lineStart), exp->context.lineStart);
 	else
 		fprintf(stderr, "%s\n", exp->context.lineStart);
 	fprintf(stderr, "Error (%s, %i): ", exp->context.filename, exp->context.line);
@@ -111,7 +111,7 @@ static TutBool GetLvalue(Lvalue* value, TutExpr* exp, const char* memberName)
 
 static void FinalizeTypes(TutModule* module)
 {
-	TUT_LIST_EACH(node, module->symbolTable.usertypes)
+	TUT_LIST_EACH(node, module->symbolTable->usertypes)
 	{
 		TutTypetag* t = node->value;
 		if (t->type == TUT_TYPETAG_USERTYPE)
@@ -138,7 +138,8 @@ static void FinalizeTypes(TutModule* module)
 static void ResolveVariableIndices(TutModule* module)
 {
 	int globalIndex = 0;
-	TUT_LIST_EACH(node, module->symbolTable.globals)
+
+	TUT_LIST_EACH(node, module->symbolTable->globals)
 	{
 		TutVarDecl* decl = node->value;
 		decl->index = globalIndex;
@@ -146,7 +147,7 @@ static void ResolveVariableIndices(TutModule* module)
 		globalIndex += Tut_GetTypetagSize(decl->typetag);
 	}
 
-	TUT_LIST_EACH(node, module->symbolTable.functions)
+	TUT_LIST_EACH(node, module->symbolTable->functions)
 	{
 		TutFuncDecl* decl = node->value;
 		if (decl->type == TUT_FUNC_DECL_NORMAL)
@@ -215,7 +216,7 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		{
 			if (!exp->varx.decl)
 			{
-				exp->varx.decl = Tut_GetVarDecl(&module->symbolTable, exp->varx.name, 0);
+				exp->varx.decl = Tut_GetVarDecl(module->symbolTable, exp->varx.name, 0);
 				if (!exp->varx.decl)
 				{
 					// TODO: Implement function pointers (context-sensitive)
@@ -248,7 +249,7 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		 
 		case TUT_EXPR_CALL:
 		{
-			TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, exp->callx.func->varx.name);
+			TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
 			if (!decl)
 				CompilerError(exp, "Attempted to call non-existent function '%s'\n", exp->callx.func->varx.name);
 			
@@ -445,7 +446,7 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_CALL:
 		{
-			TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, exp->callx.func->varx.name);
+			TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
 			assert(decl);
 
 			exp->typetag = decl->returnType;
@@ -591,7 +592,7 @@ static void CompileAssign(TutModule* module, TutVM* vm, TutExpr* lhs)
 
 static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool discardReturnValue)
 {
-	TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, exp->callx.func->varx.name);
+	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
 	assert(decl);
 
 	if (exp->callx.args.length < decl->args.length)
@@ -964,30 +965,44 @@ static void CompileStatement(TutModule* module, TutVM* vm, TutExpr* exp)
 
 void Tut_CompileModule(TutModule* module, TutVM* vm)
 {
-	TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, "_main");
+	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, "_main");
 	if (!decl)
 		Tut_ErrorExit("Module '%s' has no '_main' function.\n", module->name);
 
 	// Goto _main
 	int32_t patchLoc = Tut_EmitGoto(vm, TUT_FALSE, 0);
 
-	FinalizeTypes(module);
-	ResolveVariableIndices(module);
+	TutList allModules;
 
-	TUT_LIST_EACH(node, module->exprList)
-		ResolveSymbols(module, node->value);
+	Tut_InitList(&allModules);
 
-	TUT_LIST_EACH(node, module->exprList)
-		ResolveTypes(module, node->value);
+	TUT_LIST_EACH(node, module->importedModules)
+		Tut_ListAppend(&allModules, node->value);
 
-	TUT_LIST_EACH(node, module->exprList)
-		CompileStatement(module, vm, node->value);
+	Tut_ListAppend(&allModules, module);
+
+	TUT_LIST_EACH(node, allModules)
+	{
+		TutModule* mod = node->value;
+
+		FinalizeTypes(mod);
+		ResolveVariableIndices(mod);
+
+		TUT_LIST_EACH(node, mod->exprList)
+			ResolveSymbols(mod, node->value);
+
+		TUT_LIST_EACH(node, mod->exprList)
+			ResolveTypes(mod, node->value);
+
+		TUT_LIST_EACH(node, mod->exprList)
+			CompileStatement(mod, vm, node->value);
+	}
 
 	int32_t pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, decl->index, int32_t);
 	Tut_PatchGoto(vm, patchLoc, pc);
 
 	int numExterns = 0;
-	TUT_LIST_EACH(node, module->symbolTable.functions)
+	TUT_LIST_EACH(node, module->symbolTable->functions)
 	{
 		TutFuncDecl* decl = node->value;
 		if (decl->type == TUT_FUNC_DECL_EXTERN)
@@ -1002,7 +1017,7 @@ void Tut_CompileModule(TutModule* module, TutVM* vm)
 
 void Tut_BindExternFindIndex(TutModule* module, TutVM* vm, const char* name, TutVMExternFunction fn)
 {
-	TutFuncDecl* decl = Tut_GetFuncDecl(&module->symbolTable, name);
+	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, name);
 	if (decl && decl->type == TUT_FUNC_DECL_EXTERN && decl->index >= 0)
 		Tut_BindExtern(vm, decl->index, name, fn);
 }

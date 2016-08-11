@@ -22,6 +22,9 @@ static const char* Names[TUT_TOK_COUNT] =
 	"else",
 	"while",
 
+	"import",
+	"module",
+
 	"struct",
 	
 	"(",

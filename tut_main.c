@@ -44,8 +44,11 @@ static void TestCompiler(const char* filename)
 	Tut_InitVM(&vm);
 
 	TutModule module;
+	TutSymbolTable symbolTable;
 
-	Tut_InitModuleFromFile(&module, filename);
+	Tut_InitSymbolTable(&symbolTable);
+	Tut_InitModuleFromFile(&module, &symbolTable, filename);
+
 	Tut_CompileModule(&module, &vm);
 	
 	TutStdExt_BindAll(&module, &vm);
@@ -54,7 +57,7 @@ static void TestCompiler(const char* filename)
 
 	vm.pc = 0;
 	while (vm.pc >= 0)
-		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_NONE);
+		Tut_ExecuteCycle(&vm, TUT_VM_DEBUG_OP);
 	getchar();
 }
 

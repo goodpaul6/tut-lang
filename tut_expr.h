@@ -43,9 +43,9 @@ typedef enum
 typedef struct TutExpr
 {
 	TutExprType type;
-	TutLexerContext context;
 	TutTypetag* typetag;
-		
+	TutLexerContext context;
+
 	union
 	{
 		TutList blockList;

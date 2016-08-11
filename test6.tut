@@ -1,7 +1,9 @@
-extern printf(format : str, ...) : void;
-extern malloc(size : int) : ref;
-extern memcpy(dest : ref, src : ref, size : int) : ref;
-extern free(r : ref) : void;
+module test
+
+extern printf(format : str, ...) : void
+extern malloc(size : int) : ref
+extern memcpy(dest : ref, src : ref, size : int) : ref
+extern free(r : ref) : void
 
 func _main() : void
 {

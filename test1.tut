@@ -1,3 +1,5 @@
+module test
+
 extern printf(format : str, ...) : void
 
 func fact(n : int) : int

@@ -96,6 +96,8 @@ static TutToken GetToken(TutLexer* lexer)
 		if (strcmp(lexer->lexeme, "extern") == 0) return TUT_TOK_EXTERN;
 		if (strcmp(lexer->lexeme, "struct") == 0) return TUT_TOK_STRUCT;
 		if (strcmp(lexer->lexeme, "cast") == 0) return TUT_TOK_CAST;
+		if (strcmp(lexer->lexeme, "import") == 0) return TUT_TOK_IMPORT;
+		if (strcmp(lexer->lexeme, "module") == 0) return TUT_TOK_MODULE;
 
 		return TUT_TOK_IDENT;
 	}
@@ -357,7 +359,7 @@ static TutToken GetToken(TutLexer* lexer)
 	if(lexer->last == EOF)
 		return TUT_TOK_EOF;
 		
-	Tut_ErrorExit("Unexpected character '%c'.\n", lexer->last);
+	Tut_ErrorExit("(%s, %d): Unexpected character '%c'.\n", lexer->context.filename, lexer->context.line, lexer->last);
 	return TUT_TOK_ERROR;
 }
 

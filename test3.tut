@@ -1,3 +1,5 @@
+module test
+
 extern printf(format : str, ...) : void
 extern strlen(str : str) : int
 

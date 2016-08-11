@@ -86,18 +86,18 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 
 const char* Tut_TypetagRepr(const TutTypetag* tag)
 {
-	switch(tag->type)
+	switch (tag->type)
 	{
 		case TUT_TYPETAG_USERTYPE: return tag->user.name;
 		case TUT_TYPETAG_REF:
 		{
 			static char buf[1024];
-			
+
 			if (tag->ref.value)
 				sprintf(buf, "ref-%s", Tut_TypetagRepr(tag->ref.value));
 			else
 				sprintf(buf, "ref");
-			
+
 			// TODO: Fix memory leak (LOL)
 			return Tut_Strdup(buf);
 		} break;
@@ -107,7 +107,7 @@ const char* Tut_TypetagRepr(const TutTypetag* tag)
 	}
 }
 
-void Tut_DestroyTypetag(TutTypetag* tag)
+void Tut_DeleteTypetag(TutTypetag* tag)
 {
 	if (tag->type == TUT_TYPETAG_USERTYPE)
 	{
@@ -118,10 +118,11 @@ void Tut_DestroyTypetag(TutTypetag* tag)
 			TutTypetagMember* mem = Tut_ArrayGet(&tag->user.members, i);
 
 			Tut_Free(mem->name);
-			Tut_DestroyTypetag(mem->typetag);
+			Tut_DeleteTypetag(mem->typetag);
 		}
 		Tut_DestroyArray(&tag->user.members);
 	}
 	else if (tag->type == TUT_TYPETAG_REF && tag->ref.value)
-		Tut_DestroyTypetag(tag->ref.value);
+		Tut_DeleteTypetag(tag->ref.value);
+	Tut_Free(tag);
 }

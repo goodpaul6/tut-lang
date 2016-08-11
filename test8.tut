@@ -1,12 +1,9 @@
-// nested functions test
-extern printf(format : str, ...) : void;
+module test
+
+import "test8_lib.tut"
 
 func _main() : void
 {
-	func add(x : int, y : int) : int
-	{
-		return x + y;
-	}
-	
-	printf("%i\n", add(10, 20));
+	var p : Point = make_point(10, 20);
+	print_point(p);
 }

@@ -54,6 +54,6 @@ int Tut_GetTypetagSize(TutTypetag* tag);
 TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b); 
 const char* Tut_TypetagRepr(const TutTypetag* tag);
 
-void Tut_DestroyTypetag(TutTypetag* tag);
+void Tut_DeleteTypetag(TutTypetag* tag);
 
 #endif

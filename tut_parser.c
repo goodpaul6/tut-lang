@@ -47,7 +47,7 @@ static TutTypetag* ParseType(TutModule* module)
 	// Attempt to create a primitive type tag (i.e bool, int, str, etc)
 	TutTypetag* tag = Tut_CreatePrimitiveTypetag(module->lexer.lexeme);
 	if(!tag)
-		tag = Tut_RegisterType(&module->symbolTable, module->lexer.lexeme);
+		tag = Tut_RegisterType(module->symbolTable, module->lexer.lexeme);
 	else if (tag->type == TUT_TYPETAG_REF)
 	{
 		Tut_GetToken(&module->lexer);
@@ -107,7 +107,7 @@ static TutExpr* ParseVar(TutModule* module)
 	
 	EatToken(module, TUT_TOK_COLON);
 
-	exp->varx.decl = Tut_DeclareVariable(&module->symbolTable, exp->varx.name, ParseType(module));
+	exp->varx.decl = Tut_DeclareVariable(module->symbolTable, exp->varx.name, ParseType(module));
 	
 	return exp;
 }
@@ -117,7 +117,7 @@ static TutExpr* ParseIdent(TutModule* module)
 	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_IDENT, &module->lexer.context);
 				
 	exp->varx.name = Tut_Strdup(module->lexer.lexeme);
-	exp->varx.decl = Tut_GetVarDecl(&module->symbolTable, module->lexer.lexeme, -1);
+	exp->varx.decl = Tut_GetVarDecl(module->symbolTable, module->lexer.lexeme, -1);
 	
 	Tut_GetToken(&module->lexer);
 	
@@ -126,16 +126,23 @@ static TutExpr* ParseIdent(TutModule* module)
 
 static TutExpr* ParseFunc(TutModule* module)
 {
+	if (module->symbolTable->curFunc)
+		ParseError(module, "Cannot nest function declarations.\n");	// TODO: Allow it someday
+
 	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_FUNC, &module->lexer.context);
 	Tut_GetToken(&module->lexer);
 	
 	ExpectToken(module, TUT_TOK_IDENT);
 
-	exp->funcx.decl = Tut_DeclareFunction(&module->symbolTable, module->lexer.lexeme);
+	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, module->lexer.lexeme);
+	if (decl)
+		ParseError(module, "Multiple declaration of function '%s'\n", decl->name);
+
+	exp->funcx.decl = Tut_DeclareFunction(module->symbolTable, module->lexer.lexeme);
 	Tut_GetToken(&module->lexer);
 	
-	Tut_PushCurFuncDecl(&module->symbolTable, exp->funcx.decl);
-	++module->symbolTable.curScope;
+	Tut_PushCurFuncDecl(module->symbolTable, exp->funcx.decl);
+	++module->symbolTable->curScope;
 
 	EatToken(module, TUT_TOK_OPENPAREN);
 
@@ -153,7 +160,7 @@ static TutExpr* ParseFunc(TutModule* module)
 		
 		TutTypetag* tag = ParseType(module);
 		
-		Tut_DeclareArgument(&module->symbolTable, name, tag);
+		Tut_DeclareArgument(module->symbolTable, name, tag);
 		
 		if(module->lexer.curTok == TUT_TOK_COMMA)
 			Tut_GetToken(&module->lexer);
@@ -167,9 +174,9 @@ static TutExpr* ParseFunc(TutModule* module)
 	exp->funcx.decl->returnType = ParseType(module);
 	exp->funcx.body = ParseStatement(module);
 	
-	--module->symbolTable.curScope;
+	--module->symbolTable->curScope;
 
-	Tut_PopCurFuncDecl(&module->symbolTable);
+	Tut_PopCurFuncDecl(module->symbolTable);
 	
 	return exp;
 }
@@ -181,48 +188,95 @@ static TutExpr* ParseExtern(TutModule* module)
 
 	ExpectToken(module, TUT_TOK_IDENT);
 
-	exp->externx.decl = Tut_DeclareExtern(&module->symbolTable, module->lexer.lexeme);
-	Tut_GetToken(&module->lexer);
+	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, module->lexer.lexeme);
 
-	Tut_PushCurFuncDecl(&module->symbolTable, exp->externx.decl);
-
-	EatToken(module, TUT_TOK_OPENPAREN);
-
-	while (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
+	if (!decl)
 	{
-		if (module->lexer.curTok == TUT_TOK_ELLIPSIS)
-		{
-			exp->funcx.decl->hasVarargs = TUT_TRUE;
-			Tut_GetToken(&module->lexer);
+		exp->externx.decl = Tut_DeclareExtern(module->symbolTable, module->lexer.lexeme);
+		Tut_GetToken(&module->lexer);
 
-			if (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
-				ParseError(module, "Expected ')' after '...' but received '%s'\n", Tut_TokenRepr(module->lexer.curTok));
-			break;
-		}
-		else
+		Tut_PushCurFuncDecl(module->symbolTable, exp->externx.decl);
+
+		EatToken(module, TUT_TOK_OPENPAREN);
+
+		while (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
+		{
+			if (module->lexer.curTok == TUT_TOK_ELLIPSIS)
+			{
+				exp->funcx.decl->hasVarargs = TUT_TRUE;
+				Tut_GetToken(&module->lexer);
+
+				if (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
+					ParseError(module, "Expected ')' after '...' but received '%s'\n", Tut_TokenRepr(module->lexer.curTok));
+				break;
+			}
+		
 			ExpectToken(module, TUT_TOK_IDENT);
 
-		char* name = Tut_Strdup(module->lexer.lexeme);
+			char* name = Tut_Strdup(module->lexer.lexeme);
+			Tut_GetToken(&module->lexer);
+
+			EatToken(module, TUT_TOK_COLON);
+
+			TutTypetag* tag = ParseType(module);
+
+			Tut_DeclareArgument(module->symbolTable, name, tag);
+			Tut_Free(name);
+
+			if (module->lexer.curTok == TUT_TOK_COMMA)
+				Tut_GetToken(&module->lexer);
+			else if (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
+				ParseError(module, "Expected ')' or ',' but received '%s'\n", Tut_TokenRepr(module->lexer.curTok));
+		}
 		Tut_GetToken(&module->lexer);
 
 		EatToken(module, TUT_TOK_COLON);
 
+		exp->externx.decl->returnType = ParseType(module);
+
+		Tut_PopCurFuncDecl(module->symbolTable);
+	}
+	else
+	{
+		exp->externx.decl = decl;
+
+		Tut_GetToken(&module->lexer);
+
+		EatToken(module, TUT_TOK_OPENPAREN);
+		
+		while (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
+		{
+			if (module->lexer.curTok == TUT_TOK_ELLIPSIS)
+			{
+				Tut_GetToken(&module->lexer);
+				ExpectToken(module, TUT_TOK_CLOSEPAREN);
+
+				break;
+			}
+
+			EatToken(module, TUT_TOK_IDENT);
+			EatToken(module, TUT_TOK_COLON);
+
+			TutTypetag* tag = ParseType(module);
+			
+			// Discard type
+			Tut_DeleteTypetag(tag);
+
+			if (module->lexer.curTok == TUT_TOK_COMMA)
+				Tut_GetToken(&module->lexer);
+			else
+				ExpectToken(module, TUT_TOK_CLOSEPAREN);
+		}
+
+		Tut_GetToken(&module->lexer);
+		
+		EatToken(module, TUT_TOK_COLON);
+
 		TutTypetag* tag = ParseType(module);
 
-		Tut_DeclareArgument(&module->symbolTable, name, tag);
-
-		if (module->lexer.curTok == TUT_TOK_COMMA)
-			Tut_GetToken(&module->lexer);
-		else if (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
-			ParseError(module, "Expected ')' or ',' but received '%s'\n", Tut_TokenRepr(module->lexer.curTok));
+		// Discard type
+		Tut_DeleteTypetag(tag);
 	}
-	Tut_GetToken(&module->lexer);
-
-	EatToken(module, TUT_TOK_COLON);
-
-	exp->externx.decl->returnType = ParseType(module);
-
-	Tut_PopCurFuncDecl(&module->symbolTable);
 
 	return exp;
 }
@@ -232,10 +286,10 @@ static TutExpr* ParseReturn(TutModule* module)
 	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_RETURN, &module->lexer.context);
 	Tut_GetToken(&module->lexer);
 	
-	if (!module->symbolTable.curFunc)
+	if (!module->symbolTable->curFunc)
 		ParseError(module, "Return statement not inside function.\n");
 
-	exp->retx.parent = module->symbolTable.curFunc;
+	exp->retx.parent = module->symbolTable->curFunc;
 	
 	if(module->lexer.curTok == TUT_TOK_SEMICOLON)
 	{
@@ -269,7 +323,7 @@ static TutExpr* ParseBlock(TutModule* module)
 	
 	Tut_GetToken(&module->lexer);
 
-	++module->symbolTable.curScope;
+	++module->symbolTable->curScope;
 
 	while(module->lexer.curTok != TUT_TOK_CLOSECURLY)
 	{
@@ -280,7 +334,7 @@ static TutExpr* ParseBlock(TutModule* module)
 		Tut_ListAppend(&exp->blockList, bodyExp);
 	}
 
-	--module->symbolTable.curScope;
+	--module->symbolTable->curScope;
 
 	Tut_GetToken(&module->lexer);
 
@@ -324,7 +378,7 @@ static TutExpr* ParseStruct(TutModule* module)
 
 	ExpectToken(module, TUT_TOK_IDENT);
 	
-	exp->structx.typetag = Tut_DefineType(&module->symbolTable, module->lexer.lexeme);
+	exp->structx.typetag = Tut_DefineType(module->symbolTable, module->lexer.lexeme);
 	Tut_GetToken(&module->lexer);
 
 	EatToken(module, TUT_TOK_OPENCURLY);
@@ -420,10 +474,24 @@ static TutExpr* ParseCall(TutModule* module, TutExpr* pre)
 	return exp;
 }
 
+static void HandleImport(TutModule* module)
+{
+	Tut_GetToken(&module->lexer);
+
+	ExpectToken(module, TUT_TOK_STRING);
+
+	TutModule* mod = Tut_LoadModule(module->symbolTable, module->lexer.lexeme);
+	
+	Tut_ListAppend(&module->importedModules, mod);
+	Tut_GetToken(&module->lexer);
+}
+
 static TutExpr* ParseFactor(TutModule* module)
 {
 	switch(module->lexer.curTok)
 	{
+		case TUT_TOK_IMPORT: HandleImport(module); return ParseFactor(module);
+
 		case TUT_TOK_TRUE: return Tut_CreateExpr(TUT_EXPR_TRUE, &module->lexer.context);
 		case TUT_TOK_FALSE: return Tut_CreateExpr(TUT_EXPR_FALSE, &module->lexer.context);
 
@@ -557,6 +625,17 @@ static TutExpr* ParseExpr(TutModule* module)
 void Tut_ParseModule(TutModule* module)
 {
 	Tut_GetToken(&module->lexer);
+
+	EatToken(module, TUT_TOK_MODULE);
+	ExpectToken(module, TUT_TOK_IDENT);
+
+	module->name = Tut_Strdup(module->lexer.lexeme);
+
+	Tut_GetToken(&module->lexer);
+
+	if (module->lexer.curTok == TUT_TOK_SEMICOLON)
+		Tut_GetToken(&module->lexer);
+
 	while(module->lexer.curTok != TUT_TOK_EOF)
 	{
 		TutExpr* exp = ParseExpr(module);

@@ -54,8 +54,9 @@ void Tut_InitSymbolTable(TutSymbolTable* table)
 
 TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
 {
-	TutFuncDecl* decl = MakeFuncDecl(name, TUT_FUNC_DECL_NORMAL);
-	
+	TutFuncDecl* decl = Tut_GetFuncDecl(table, name);
+
+	decl = MakeFuncDecl(name, TUT_FUNC_DECL_NORMAL);
 	decl->index = table->numFunctions++;
 		
 	if(table->curFunc)
@@ -69,7 +70,6 @@ TutFuncDecl* Tut_DeclareFunction(TutSymbolTable* table, const char* name)
 TutFuncDecl* Tut_DeclareExtern(TutSymbolTable* table, const char* name)
 {
 	TutFuncDecl* decl = MakeFuncDecl(name, TUT_FUNC_DECL_EXTERN);
-
 	decl->index = table->numExterns++;
 
 	if (table->curFunc)
@@ -204,10 +204,10 @@ TutFuncDecl* Tut_GetFuncDecl(TutSymbolTable* table, const char* name)
 	TUT_LIST_EACH(node, table->functions)
 	{
 		TutFuncDecl* decl = node->value;
-		if(strcmp(decl->name, name) == 0)
+		if (strcmp(decl->name, name) == 0)
 			return decl;
 	}
-	
+
 	return NULL;
 }
 
