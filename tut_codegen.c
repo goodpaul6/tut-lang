@@ -29,6 +29,17 @@ void Tut_EmitMakeDynRef(TutVM * vm, uint16_t offset)
 	vm->codeSize += 2;
 }
 
+void Tut_EmitMakeFunc(TutVM* vm, TutBool isExtern, int32_t index)
+{
+	if (!isExtern)
+		Tut_EmitOp(vm, TUT_OP_MAKEFUNC);
+	else
+		Tut_EmitOp(vm, TUT_OP_MAKEEXTERNFUNC);
+	
+	Tut_WriteInt32(vm->code, vm->codeSize, index);
+	vm->codeSize += 4;
+}
+
 void Tut_EmitGetRef(TutVM* vm, uint16_t count, uint16_t offset)
 {
 	if (count == 1)
@@ -247,15 +258,9 @@ void Tut_EmitMove(TutVM* vm, uint16_t numObjects, uint16_t stackSpaces)
 	}
 }
 
-void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint16_t nargs)
+void Tut_EmitCall(TutVM* vm, uint16_t nargs)
 {
-	if (!ext)
-		Tut_EmitOp(vm, TUT_OP_CALL);
-	else
-		Tut_EmitOp(vm, TUT_OP_CALL_EXTERN);
-
-	Tut_WriteInt32(vm->code, vm->codeSize, index);
-	vm->codeSize += 4;
+	Tut_EmitOp(vm, TUT_OP_CALL);
 
 	Tut_WriteUint16(vm->code, vm->codeSize, nargs);
 	vm->codeSize += 2;

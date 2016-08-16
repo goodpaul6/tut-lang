@@ -6,6 +6,7 @@
 void Tut_EmitOp(TutVM* vm, uint8_t op);
 void Tut_EmitMakeVarRef(TutVM* vm, TutBool global, int32_t index);
 void Tut_EmitMakeDynRef(TutVM* vm, uint16_t offset);
+void Tut_EmitMakeFunc(TutVM* vm, TutBool isExtern, int32_t index);
 void Tut_EmitGetRef(TutVM* vm, uint16_t count, uint16_t offset);
 void Tut_EmitSetRef(TutVM* vm, uint16_t count, uint16_t offset);
 void Tut_EmitGet(TutVM* vm, TutBool global, int32_t index, uint16_t count);
@@ -16,7 +17,7 @@ void Tut_EmitPushStr(TutVM* vm, const char* value);
 void Tut_EmitPush(TutVM* vm, uint16_t count);
 void Tut_EmitPop(TutVM* vm, uint16_t count);
 void Tut_EmitMove(TutVM* vm, uint16_t numObjects, uint16_t stackSpaces);
-void Tut_EmitCall(TutVM* vm, TutBool ext, int32_t index, uint16_t nargs);
+void Tut_EmitCall(TutVM* vm, uint16_t nargs);
 void Tut_EmitRetval(TutVM* vm, uint16_t count);
 // Returns the bytecode location where the 'pc' is written
 int32_t Tut_EmitGoto(TutVM* vm, TutBool cond, int32_t pc);

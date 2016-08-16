@@ -13,6 +13,9 @@ typedef enum
 	TUT_OP_MAKELOCALREF,	// refernece to local variable
 	TUT_OP_MAKEDYNAMICREF,	// reference to reference variable (requires uint16 offset, reference on stack)
 
+	TUT_OP_MAKEFUNC,		// n (int32_t) function index
+	TUT_OP_MAKEEXTERNFUNC,	// n (int32_t) extern index
+
 	TUT_OP_PUSHN,			// push n (uint16) uninitialized objects onto stack (i.e increment stack pointer)
 	TUT_OP_PUSH1,			// push 1 ...
 	TUT_OP_POPN,			// pop n (uint16) objects off of the stack (decrement stack pointer, usually to discard function return value)
@@ -72,7 +75,6 @@ typedef enum
 	TUT_OP_SEQ,
 
 	TUT_OP_CALL,
-	TUT_OP_CALL_EXTERN,
 
 	TUT_OP_RET,
 

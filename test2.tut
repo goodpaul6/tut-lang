@@ -1,6 +1,6 @@
 module test
 
-extern printf(format : str, ...) : void
+extern printf(format : cstr, ...) : void
 
 func make_vec2(x : float, y : float) : Vec2
 {

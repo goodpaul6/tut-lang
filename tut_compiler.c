@@ -9,6 +9,12 @@
 #include "tut_opcodes.h"
 #include "tut_expr.h"
 
+static const char* Flags[TUT_CFLAG_COUNT] =
+{
+	NULL,
+	NULL
+};
+
 static void CompilerError(TutExpr* exp, const char* format, ...)
 {
 	char* lineEnd = strchr(exp->context.lineStart, '\n');
@@ -23,6 +29,22 @@ static void CompilerError(TutExpr* exp, const char* format, ...)
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
+
+	if (exp->context.filename)
+	{
+		static char buf[1024];
+
+		if (Flags[TUT_CFLAG_OPEN_ERROR_GEANY_PATH])
+		{
+			sprintf(buf, "%s +%d --column %d %s", Flags[TUT_CFLAG_OPEN_ERROR_GEANY_PATH], exp->context.line, (int)(exp->context.current - exp->context.lineStart), exp->context.filename);
+			system(buf);
+		}
+		else if (Flags[TUT_CFLAG_OPEN_ERROR_NPP_PATH])
+		{
+			sprintf(buf, "%s -n%d -c%d %s", Flags[TUT_CFLAG_OPEN_ERROR_NPP_PATH], exp->context.line, (int)(exp->context.current - exp->context.lineStart), exp->context.filename);
+			system(buf);
+		}
+	}
 
 	exit(1);
 }
@@ -219,8 +241,10 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 				exp->varx.decl = Tut_GetVarDecl(module->symbolTable, exp->varx.name, 0);
 				if (!exp->varx.decl)
 				{
-					// TODO: Implement function pointers (context-sensitive)
-					CompilerError(exp, "Attempted to access undefined variable '%s'\n", exp->varx.name);
+					TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->varx.name);
+					if (!decl)
+						CompilerError(exp, "Attempted to access undeclared variable '%s'.\n", exp->varx.name);
+					exp->varx.funcDecl = decl;
 				}
 			}
 		} break;
@@ -249,10 +273,7 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		 
 		case TUT_EXPR_CALL:
 		{
-			TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
-			if (!decl)
-				CompilerError(exp, "Attempted to call non-existent function '%s'\n", exp->callx.func->varx.name);
-			
+			ResolveSymbols(module, exp->callx.func);
 			TUT_LIST_EACH(node, exp->callx.args)
 				ResolveSymbols(module, node->value);
 		} break;
@@ -315,7 +336,7 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_STR:
 		{
-			exp->typetag = Tut_CreatePrimitiveTypetag("str");
+			exp->typetag = Tut_CreatePrimitiveTypetag("cstr");
 		} break;
 
 		case TUT_EXPR_VAR:
@@ -325,8 +346,12 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_IDENT:
 		{
-			assert(exp->varx.decl);
-			exp->typetag = exp->varx.decl->typetag;
+			assert(exp->varx.decl || exp->varx.funcDecl);
+
+			if (exp->varx.decl)
+				exp->typetag = exp->varx.decl->typetag;
+			else
+				exp->typetag = exp->varx.funcDecl->typetag;
 		} break;
 
 		case TUT_EXPR_UNARY:
@@ -390,14 +415,22 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 				if (exp->binx.lhs->type != TUT_EXPR_VAR)
 				{
 					if (!Tut_CompareTypes(exp->binx.lhs->typetag, exp->binx.rhs->typetag))
-						CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
+					{
+						// IMPORTANT: Autoconversion from 'str' to 'cstr'
+						if(exp->binx.lhs->typetag->type != TUT_TYPETAG_CSTR || exp->binx.rhs->typetag->type != TUT_TYPETAG_STR)
+							CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
+					}
 				}
 				else
 				{
 					assert(exp->binx.lhs->varx.decl);
 
 					if (!Tut_CompareTypes(exp->binx.lhs->varx.decl->typetag, exp->binx.rhs->typetag))
-						CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
+					{
+						// IMPORTANT: Autoconversion from 'str' to 'cstr'
+						if (exp->binx.lhs->varx.decl->typetag->type != TUT_TYPETAG_CSTR || exp->binx.rhs->typetag->type != TUT_TYPETAG_STR)
+							CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->varx.decl->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
+					}
 				}
 			}
 		} break;
@@ -446,13 +479,52 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_CALL:
 		{
-			TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
-			assert(decl);
+			ResolveTypes(module, exp->callx.func);
 
-			exp->typetag = decl->returnType;
+			if (exp->callx.func->typetag->type != TUT_TYPETAG_FUNC)
+				CompilerError(exp, "Attempted to call non-function value of type '%s'.\n", Tut_TypetagRepr(exp->callx.func->typetag));
+
+			assert(exp->callx.func->typetag->func.ret);
+
+			exp->typetag = exp->callx.func->typetag->func.ret;
+
+			if (!exp->callx.func->typetag->func.hasVarargs)
+			{
+				if (exp->callx.args.length != exp->callx.func->typetag->func.args.length)
+					CompilerError(exp, "Invalid number of arguments in function call; expected %d arguments but passed %d\n",
+						exp->callx.args.length, exp->callx.func->typetag->func.args.length);
+			}
+			else if (exp->callx.args.length < exp->callx.func->typetag->func.args.length)
+				CompilerError(exp, "Expected at least %d arguments in function call but passed %d\n",
+					exp->callx.func->typetag->func.args.length, exp->callx.args.length);
 
 			TUT_LIST_EACH(node, exp->callx.args)
 				ResolveTypes(module, node->value);
+
+			TutListNode* argNode = exp->callx.args.head;
+			TutListNode* tagNode = exp->callx.func->typetag->func.args.head;
+
+			int i = 0;
+			while (argNode && tagNode)
+			{
+				TutExpr* arg = argNode->value;
+				TutTypetag* tag = tagNode->value;
+				
+				if (arg->typetag->type == TUT_TYPETAG_VOID)
+					CompilerError(arg, "Attempted to pass void value in function call.\n");
+
+				if (!Tut_CompareTypes(arg->typetag, tag))
+				{
+					// IMPORTANT: Autoconversion from 'str' to 'cstr'
+					if (tag->type != TUT_TYPETAG_CSTR || arg->typetag->type != TUT_TYPETAG_STR)
+						CompilerError(arg, "Argument %d was supposed to be a '%s' but you passed a '%s'\n",
+							i + 1, Tut_TypetagRepr(tag), Tut_TypetagRepr(arg->typetag));
+				}
+
+				argNode = argNode->next;
+				tagNode = tagNode->next;
+				++i;
+			}
 		} break;
 
 		case TUT_EXPR_CAST:
@@ -508,16 +580,19 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 		case TUT_EXPR_RETURN:
 		{
 			exp->typetag = Tut_CreatePrimitiveTypetag("void");
-				
+
+			assert(exp->retx.parent);
+			assert(exp->retx.parent->typetag->func.ret);
+
 			if (exp->retx.value)
 			{
 				ResolveTypes(module, exp->retx.value);
-				assert(exp->retx.parent);
 
-				if (!Tut_CompareTypes(exp->retx.parent->returnType, exp->retx.value->typetag))
-					CompilerError(exp, "Type of value in return statement '%s' does not match return type of enclosing function '%s'\n", Tut_TypetagRepr(exp->retx.value->typetag), Tut_TypetagRepr(exp->retx.parent->returnType));
+				if (!Tut_CompareTypes(exp->retx.parent->typetag->func.ret, exp->retx.value->typetag))
+					CompilerError(exp, "Type of value in return statement '%s' does not match return type of enclosing function '%s'\n", 
+						Tut_TypetagRepr(exp->retx.value->typetag), Tut_TypetagRepr(exp->retx.parent->typetag->func.ret));
 			}
-			else if (exp->retx.parent->returnType->type != TUT_TYPETAG_VOID)
+			else if (exp->retx.parent->typetag->func.ret->type != TUT_TYPETAG_VOID)
 				CompilerError(exp, "Function must return a value.\n");
 		} break;
 	}
@@ -592,33 +667,8 @@ static void CompileAssign(TutModule* module, TutVM* vm, TutExpr* lhs)
 
 static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool discardReturnValue)
 {
-	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->callx.func->varx.name);
-	assert(decl);
-
-	if (exp->callx.args.length < decl->args.length)
-		CompilerError(exp, "Not enough arguments passed into function '%s'; it takes [at least] %d\n", decl->name, decl->args.length);
-	else if (!decl->hasVarargs && exp->callx.args.length > decl->args.length)
-		CompilerError(exp, "Too many arguments passed into function '%s'; it takes %d\n", decl->name, decl->args.length);
-
-	TutListNode* argNode = exp->callx.args.head;
-	TutListNode* varNode = decl->args.head;
-	int i = 1;
-
-	while (argNode && varNode)
-	{
-		TutExpr* arg = argNode->value;
-		TutVarDecl* var = varNode->value;
-
-		assert(arg->typetag);
-		assert(var->typetag);
-
-		if (!Tut_CompareTypes(arg->typetag, var->typetag))
-			CompilerError(exp, "Argument %d type '%s' does not match expected type '%s'\n", i, Tut_TypetagRepr(arg->typetag), Tut_TypetagRepr(var->typetag));
-
-		argNode = argNode->next;
-		varNode = varNode->next;
-		++i;
-	}
+	assert(exp->callx.func->typetag);
+	assert(exp->callx.func->typetag->type == TUT_TYPETAG_FUNC);
 
 	int totalCount = 0;
 
@@ -631,12 +681,13 @@ static void CompileCall(TutModule* module, TutVM* vm, TutExpr* exp, TutBool disc
 
 		CompileValue(module, vm, node->value);
 	}
+	
+	CompileValue(module, vm, exp->callx.func);
+	Tut_EmitCall(vm, totalCount);
 
-	Tut_EmitCall(vm, decl->type == TUT_FUNC_DECL_EXTERN, decl->index, (uint16_t)totalCount);
-
-	if (discardReturnValue && decl->returnType->type != TUT_TYPETAG_VOID)
+	if (discardReturnValue && exp->callx.func->typetag->func.ret->type != TUT_TYPETAG_VOID)
 	{
-		TutTypetag* ret = decl->returnType;
+		TutTypetag* ret = exp->callx.func->typetag->func.ret;
 		Tut_EmitPop(vm, Tut_GetTypetagSize(ret));
 	}
 }
@@ -676,11 +727,16 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 		case TUT_EXPR_IDENT:
 		{
 			assert(exp->typetag);
-			assert(exp->varx.decl);
-			assert(exp->varx.decl->index != TUT_VAR_DECL_INDEX_UNDEFINED);
-
-			// BAM! Copy the entire thing at once
-			Tut_EmitGet(vm, !exp->varx.decl->parent, exp->varx.decl->index, Tut_GetTypetagSize(exp->varx.decl->typetag));
+			assert((exp->varx.decl && exp->varx.decl->index != TUT_VAR_DECL_INDEX_UNDEFINED) || 
+				exp->varx.funcDecl);
+			
+			if (exp->varx.decl)
+			{
+				// BAM! Copy the entire thing at once
+				Tut_EmitGet(vm, !exp->varx.decl->parent, exp->varx.decl->index, Tut_GetTypetagSize(exp->varx.decl->typetag));
+			}
+			else if (exp->varx.funcDecl)
+				Tut_EmitMakeFunc(vm, exp->varx.funcDecl->type == TUT_FUNC_DECL_EXTERN, exp->varx.funcDecl->index);
 		} break;
 
 		case TUT_EXPR_UNARY:
@@ -1013,6 +1069,11 @@ void Tut_CompileModule(TutModule* module, TutVM* vm)
 
 	Tut_ArrayResize(&vm->externs, numExterns, &value);
 	Tut_ArrayResize(&vm->externNames, numExterns, &value);
+}
+
+void Tut_SetCompilerFlag(Tut_CompilerFlag flag, const char* value)
+{
+	Flags[flag] = value;
 }
 
 void Tut_BindExternFindIndex(TutModule* module, TutVM* vm, const char* name, TutVMExternFunction fn)

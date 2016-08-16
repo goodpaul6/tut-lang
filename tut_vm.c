@@ -98,6 +98,16 @@ void Tut_PushRef(TutVM* vm, void* ref)
 	Tut_Push(vm, &object);
 }
 
+void Tut_PushFunc(TutVM* vm, TutBool isExtern, int32_t index)
+{
+	TutObject object;
+
+	object.func.isExtern = isExtern;
+	object.func.index = index;
+
+	Tut_Push(vm, &object);
+}
+
 TutBool Tut_PopBool(TutVM* vm)
 {
 	TutObject object;
@@ -136,6 +146,14 @@ void* Tut_PopRef(TutVM* vm)
 	Tut_Pop(vm, &object);
 
 	return object.ref;
+}
+
+TutFunctionObject Tut_PopFunc(TutVM* vm)
+{
+	TutObject object;
+	Tut_Pop(vm, &object);
+
+	return object.func;
 }
 
 void Tut_BindExtern(TutVM* vm, uint32_t index, const char* name, TutVMExternFunction ext)
@@ -240,6 +258,26 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			Tut_PushRef(vm, &ref[offset]);
 
 			DEBUG_CYCLE(TUT_OP_MAKEDYNAMICREF, "%d", offset);
+		} break;
+
+		case TUT_OP_MAKEFUNC:
+		{
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+
+			Tut_PushFunc(vm, TUT_FALSE, index);
+
+			DEBUG_CYCLE(TUT_OP_MAKEFUNC, "%d", index);
+		} break;
+
+		case TUT_OP_MAKEEXTERNFUNC:
+		{
+			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
+			vm->pc += 4;
+	
+			Tut_PushFunc(vm, TUT_TRUE, index);
+
+			DEBUG_CYCLE(TUT_OP_MAKEFUNC, "%s(%d)", TUT_ARRAY_GET_VALUE(&vm->externNames, index, const char*), index);
 		} break;
 
 		case TUT_OP_PUSHN:
@@ -684,47 +722,44 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 
 		case TUT_OP_CALL:
 		{
-			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
-			vm->pc += 4;
-
-			uint16_t nargs = Tut_ReadUint16(vm->code, vm->pc);
-			vm->pc += 2;
-			
-			TutReturnFrame frame;
-
-			frame.nargs = nargs;
-			frame.pc = vm->pc;
-			frame.fp = vm->fp;
-
-			Tut_ArrayPush(&vm->returnFrames, &frame);
-
-			vm->pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, index, int32_t);
-			vm->fp = vm->sp;
-
-			DEBUG_CYCLE(TUT_OP_CALL, "%d, %d", index, nargs);
-		} break;
-
-		case TUT_OP_CALL_EXTERN:
-		{
-			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
-			vm->pc += 4;
-
 			uint16_t nargs = Tut_ReadUint16(vm->code, vm->pc);
 			vm->pc += 2;
 
-			DEBUG_CYCLE(TUT_OP_CALL_EXTERN, "%s, %d", TUT_ARRAY_GET_VALUE(&vm->externNames, index, const char*), nargs);
-			assert(index >= 0 && index < vm->externs.length);
+			TutFunctionObject func = Tut_PopFunc(vm);
 
-			TutVMExternFunction ext = TUT_ARRAY_GET_VALUE(&vm->externs, index, TutVMExternFunction);
-			
-			int32_t sp = vm->sp;
+			if (!func.isExtern)
+			{
+				assert(func.index >= 0 && func.index < vm->functionPcs.length);
 
-			uint16_t numObjects = ext(vm, &vm->stack[sp - nargs], nargs);
+				TutReturnFrame frame;
 
-			vm->sp = sp - nargs;
-			
-			memcpy(&vm->stack[vm->sp], &vm->stack[sp], sizeof(TutObject) * numObjects);
-			vm->sp += numObjects;
+				frame.nargs = nargs;
+				frame.pc = vm->pc;
+				frame.fp = vm->fp;
+
+				Tut_ArrayPush(&vm->returnFrames, &frame);
+
+				vm->pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, func.index, int32_t);
+				vm->fp = vm->sp;
+
+				DEBUG_CYCLE(TUT_OP_CALL, "%d", func.index, nargs);
+			}
+			else
+			{
+				DEBUG_CYCLE(TUT_OP_CALL, "extern %s, %d", TUT_ARRAY_GET_VALUE(&vm->externNames, func.index, const char*), nargs);
+				assert(func.index >= 0 && func.index < vm->externs.length);
+
+				TutVMExternFunction ext = TUT_ARRAY_GET_VALUE(&vm->externs, func.index, TutVMExternFunction);
+
+				int32_t sp = vm->sp;
+
+				uint16_t numObjects = ext(vm, &vm->stack[sp - nargs], nargs);
+
+				vm->sp = sp - nargs;
+
+				memcpy(&vm->stack[vm->sp], &vm->stack[sp], sizeof(TutObject) * numObjects);
+				vm->sp += numObjects;
+			}
 		} break;
 
 		case TUT_OP_RET:

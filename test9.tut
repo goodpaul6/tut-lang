@@ -1,0 +1,24 @@
+module test
+
+extern printf(format : cstr, ...) : void
+
+func add(x : ref-int, y : ref-int, result : ref-int) : void
+{
+	*result = *x + *y;
+}
+
+func apply(op : func(ref, ref, ref)-void, a : ref, b : ref, result : ref) : void
+{
+	op(a, b, result)
+} 
+
+func _main() : void 
+{
+	var a : int = 10;
+	var b : int = 20;
+	var result : int;
+
+	apply(add, &a, &b, &result);
+
+	printf("apply(add, &a, &b, &result)=%i\n", result);
+}

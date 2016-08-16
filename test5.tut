@@ -1,6 +1,6 @@
 module test
 
-extern printf(format : str, ...) : void
+extern printf(format : cstr, ...) : void
 
 struct Entity
 {

@@ -1,0 +1,54 @@
+// exploiting function pointer varargs
+module test
+extern printf(format : cstr, ...) : void;
+
+func apply1(a : ref, result : ref, op : func(ref, ref)-void) : void
+{
+	op(a, result)
+}
+
+func apply2(a : ref, b : ref, result : ref, op : func(ref, ref, ref)-void) : void
+{
+	op(a, b, result)
+}
+
+func apply3(a : ref, b : ref, c : ref, result : ref, op : func(ref, ref, ref, ref)-void) : void
+{
+	op(a, b, c, result)
+}
+
+func pow2(a : ref-int, result : ref-int) : void
+{
+	*result = *a * *a;
+}
+
+func mul(a : ref-int, b : ref-int, result : ref-int) : void
+{
+	*result = *a * *b;
+}
+
+func sum(a : ref-int, b : ref-int, c : ref-int, result : ref-int) : void
+{
+	*result = *a + *b + *c;
+}
+
+func _main() : void 
+{
+	var apply : func(...)-void;
+	var a : int = 10;
+	var b : int = 20;
+	var c : int = 30;
+	var result : int;
+	
+	apply = apply1;
+	apply(&a, &result, pow2);
+	printf("%i\n", result);
+	
+	apply = apply2;
+	apply(&a, &b, &result, mul);
+	printf("%i\n", result);
+	
+	apply = apply3;
+	apply(&a, &b, &c, &result, sum);
+	printf("%i\n", result);
+}

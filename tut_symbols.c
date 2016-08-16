@@ -10,8 +10,8 @@ static TutFuncDecl* MakeFuncDecl(const char* name, TutFuncDeclType type)
 	TutFuncDecl* decl = Tut_Malloc(sizeof(TutFuncDecl));
 	
 	decl->type = type;
+	decl->typetag = NULL;
 
-	decl->returnType = NULL;
 	decl->parent = NULL;
 	
 	decl->hasVarargs = TUT_FALSE;

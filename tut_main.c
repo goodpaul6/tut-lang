@@ -25,7 +25,8 @@ static void TestVM()
 
 	Tut_EmitPushInt(&vm, 100);
 	Tut_EmitPushInt(&vm, 200);
-	Tut_EmitCall(&vm, TUT_FALSE, 0, 2);
+	Tut_EmitMakeFunc(&vm, TUT_FALSE, 0);
+	Tut_EmitCall(&vm, 2);
 
 	Tut_EmitOp(&vm, TUT_OP_HALT);
 
@@ -49,6 +50,7 @@ static void TestCompiler(const char* filename)
 	Tut_InitSymbolTable(&symbolTable);
 	Tut_InitModuleFromFile(&module, &symbolTable, filename);
 
+	Tut_SetCompilerFlag(TUT_CFLAG_OPEN_ERROR_GEANY_PATH, "geany");
 	Tut_CompileModule(&module, &vm);
 	
 	TutStdExt_BindAll(&module, &vm);

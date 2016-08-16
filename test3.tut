@@ -1,10 +1,10 @@
 module test
 
-extern printf(format : str, ...) : void
-extern strlen(str : str) : int
+extern printf(format : cstr, ...) : void
+extern strlen(str : cstr) : int
 
 func _main() : void
 {
-	var str : str = "Hello World!";
+	var str : cstr = "Hello World!";
 	printf("Length of string '%s' is %i.\n", str, strlen(str));
 }

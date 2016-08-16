@@ -16,7 +16,7 @@ typedef struct TutFuncDecl
 {
 	TutFuncDeclType type;
 
-	TutTypetag* returnType;
+	TutTypetag* typetag;
 	struct TutFuncDecl* parent;
 	
 	int index;

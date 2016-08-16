@@ -1,6 +1,6 @@
 module test
 
-extern printf(format : str, ...) : void;
+extern printf(format : cstr, ...) : void;
 extern malloc(size : int) : ref;
 extern memcpy(dest : ref, src : ref, size : int) : ref;
 extern radd(r : ref, offset : int) : ref;

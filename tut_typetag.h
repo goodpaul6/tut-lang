@@ -12,7 +12,9 @@ typedef enum
 	TUT_TYPETAG_INT,
 	TUT_TYPETAG_FLOAT,
 	TUT_TYPETAG_STR,
+	TUT_TYPETAG_CSTR,
 	TUT_TYPETAG_REF,
+	TUT_TYPETAG_FUNC,
 	TUT_TYPETAG_USERTYPE,
 	TUT_TYPETAG_COUNT
 } TutTypetagType;
@@ -43,6 +45,13 @@ typedef struct TutTypetag
 		{
 			struct TutTypetag* value;
 		} ref;
+		
+		struct
+		{
+			struct TutTypetag* ret;
+			TutList args;
+			TutBool hasVarargs;
+		} func;
 	};
 } TutTypetag;
 

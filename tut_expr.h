@@ -59,6 +59,10 @@ typedef struct TutExpr
 		{
 			char* name;
 			TutVarDecl* decl;
+			// This is for ResolveSymbols to cache the function
+			// once so it doesn't have to be looked up again in 
+			// ResolveTypes and CompileValue
+			TutFuncDecl* funcDecl;
 		} varx;
 		
 		struct

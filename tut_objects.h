@@ -5,6 +5,12 @@
 
 #include "tut_util.h"
 
+typedef struct
+{
+	TutBool isExtern;
+	int32_t index;
+} TutFunctionObject;
+
 typedef union
 {
 	TutBool bv;
@@ -12,6 +18,7 @@ typedef union
 	float fv;
 	const char* sv;
 	void* ref;
+	TutFunctionObject func;
 } TutObject;
 
 #endif

@@ -10,7 +10,9 @@ static const char* Names[TUT_TYPETAG_COUNT] =
 	"int",
 	"float",
 	"str",
+	"cstr",
 	"ref",
+	"func",
 	NULL
 };
 
@@ -26,6 +28,12 @@ void Tut_InitTypetag(TutTypetag* tag, TutTypetagType type)
 	}
 	else if (tag->type == TUT_TYPETAG_REF)
 		tag->ref.value = NULL;
+	else if (tag->type == TUT_TYPETAG_FUNC)
+	{
+		Tut_InitList(&tag->func.args);
+		tag->func.ret = NULL;
+		tag->func.hasVarargs = TUT_FALSE;
+	}
 }
 
 TutTypetag* Tut_CreatePrimitiveTypetag(const char* name)
@@ -80,6 +88,38 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 		if (a->ref.value && b->ref.value)
 			return Tut_CompareTypes(a->ref.value, b->ref.value);
 	}
+	else if (a->type == TUT_TYPETAG_FUNC)
+	{
+		if (Tut_CompareTypes(a->func.ret, b->func.ret))
+		{
+			TutListNode* aNode = a->func.args.head;
+			TutListNode* bNode = b->func.args.head;
+
+			while (aNode && bNode)
+			{
+				TutTypetag* aTag = aNode->value;
+				TutTypetag* bTag = bNode->value;
+
+				if (!Tut_CompareTypes(aTag, bTag))
+					return TUT_FALSE;
+
+				aNode = aNode->next;
+				bNode = bNode->next;
+			}
+				
+			// func(x, ...) == func(x, y, z)
+			// func(x, y, z) == func(x, ...)
+			if ((bNode && !aNode) || (aNode && !bNode))
+			{
+				if (a->func.hasVarargs || b->func.hasVarargs)
+					return TUT_TRUE;
+
+				return TUT_FALSE;
+			}
+			
+			return TUT_TRUE;
+		}
+	}
 	
 	return TUT_TRUE;	
 }
@@ -89,6 +129,7 @@ const char* Tut_TypetagRepr(const TutTypetag* tag)
 	switch (tag->type)
 	{
 		case TUT_TYPETAG_USERTYPE: return tag->user.name;
+		
 		case TUT_TYPETAG_REF:
 		{
 			static char buf[1024];
@@ -99,6 +140,25 @@ const char* Tut_TypetagRepr(const TutTypetag* tag)
 				sprintf(buf, "ref");
 
 			// TODO: Fix memory leak (LOL)
+			return Tut_Strdup(buf);
+		} break;
+
+		case TUT_TYPETAG_FUNC:
+		{
+			// TODO: Fix potential buffer overflow lol nope
+			static char buf[1024];
+
+			int len = sprintf(buf, "func(");
+
+			TUT_LIST_EACH(node, tag->func.args) 
+			{
+				len += sprintf(buf + len, "%s", Tut_TypetagRepr(node->value));
+				if (node->next)
+					len += sprintf(buf + len, ", ");
+			}
+
+			sprintf(buf + len, ")-%s", Tut_TypetagRepr(tag->func.ret));
+
 			return Tut_Strdup(buf);
 		} break;
 
