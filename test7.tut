@@ -36,20 +36,20 @@ func array_get(a : ref-Array, index : int) : ref
 
 func _main() : void
 {
-	var ints : Array = make_array(10, 4);
+	var ints : Array = make_array(10, 8);
 	
 	var i : int = 0;
 		
 	while i < 10
 	{
-		array_set(&ints, i, &i);
+		array_set(&ints, i, cast(&i, ref));
 		i = i + 1;
 	}
 	
 	i = 0
 	while i < 10
 	{
-		var ri  : ref-int = array_get(&ints, i);
+		var ri : ref-int = array_get(&ints, i);
 		printf("%i\n", *ri); 
 		i = i + 1;
 	}

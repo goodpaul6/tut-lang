@@ -539,8 +539,10 @@ static TutExpr* ParseFactor(TutModule* module)
 	{
 		case TUT_TOK_IMPORT: HandleImport(module); return ParseFactor(module);
 
-		case TUT_TOK_TRUE: return Tut_CreateExpr(TUT_EXPR_TRUE, &module->lexer.context);
-		case TUT_TOK_FALSE: return Tut_CreateExpr(TUT_EXPR_FALSE, &module->lexer.context);
+		case TUT_TOK_TRUE: Tut_GetToken(&module->lexer); return Tut_CreateExpr(TUT_EXPR_TRUE, &module->lexer.context);
+		case TUT_TOK_FALSE: Tut_GetToken(&module->lexer); return Tut_CreateExpr(TUT_EXPR_FALSE, &module->lexer.context);
+
+		case TUT_TOK_NULL: Tut_GetToken(&module->lexer); return Tut_CreateExpr(TUT_EXPR_NULL, &module->lexer.context);
 
 		case TUT_TOK_INT: return ParseInt(module);
 		case TUT_TOK_FLOAT: return ParseFloat(module);

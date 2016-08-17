@@ -82,11 +82,23 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 	}
 	else if (a->type == TUT_TYPETAG_REF)
 	{
+		// IMPORTANT:
 		// ref-x == ref-x
+		
+		// THESE ARE HANDLED IN THE COMPILER:
+		// here:
+		// ref != ref-x
+		// ref-x != ref
+		// but the compiler allows (when passing arguments or assigning):
 		// ref == ref-x
+		// ref-x == ref where x is not a usertype
+
 		// ref == ref
 		if (a->ref.value && b->ref.value)
 			return Tut_CompareTypes(a->ref.value, b->ref.value);
+		else if (a->ref.value || b->ref.value)
+			return TUT_FALSE;
+		return TUT_TRUE;
 	}
 	else if (a->type == TUT_TYPETAG_FUNC)
 	{
@@ -100,7 +112,7 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 				TutTypetag* aTag = aNode->value;
 				TutTypetag* bTag = bNode->value;
 
-				if (!Tut_CompareTypes(aTag, bTag))
+				if (!Tut_CanAssignTypes(aTag, bTag))
 					return TUT_FALSE;
 
 				aNode = aNode->next;
@@ -122,6 +134,28 @@ TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b)
 	}
 	
 	return TUT_TRUE;	
+}
+
+TutBool Tut_CanAssignTypes(const TutTypetag* from, const TutTypetag* to)
+{
+	if (!Tut_CompareTypes(to, from))
+	{
+		// str -> cstr
+		if (to->type == TUT_TYPETAG_CSTR && from->type == TUT_TYPETAG_STR)
+			return TUT_TRUE;
+		// ref -> ref-x
+		else if ((to->type == TUT_TYPETAG_REF && to->ref.value) &&
+			(from->type == TUT_TYPETAG_REF && !from->ref.value))
+			return TUT_TRUE;
+		// ref-x -> ref where x is not usertype
+		else if ((to->type == TUT_TYPETAG_REF && !to->ref.value) &&
+			(from->type == TUT_TYPETAG_REF && from->ref.value->type != TUT_TYPETAG_USERTYPE))
+			return TUT_TRUE;
+
+		return TUT_FALSE;
+	}
+
+	return TUT_TRUE;
 }
 
 const char* Tut_TypetagRepr(const TutTypetag* tag)

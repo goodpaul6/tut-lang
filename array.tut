@@ -1,0 +1,76 @@
+module array
+
+extern malloc(size : int) : ref;
+extern memcpy(dest : ref, src : ref, size : int) : ref;
+extern radd(r : ref, offset : int) : ref;
+extern free(ref : ref) : void;
+
+struct Array
+{
+	datumSize : int;
+	capacity : int;
+	length : int;
+	data : ref;
+}
+
+func make_array(datumSize : int) : Array
+{
+	var a : Array;
+	
+	a.datumSize = datumSize;
+	a.capacity = 0;
+	a.length = 0;
+	a.data = null;
+	
+	return a;
+}
+
+func array_expand(a : ref-Array) : void 
+{
+	while (a->length >= a->capacity) 
+	{
+		a->capacity = a->capacity * 2;
+		
+		if a->capacity == 0
+			a->capacity = 4;
+		
+		var newData : ref = malloc(a->capacity * a->datumSize);
+		if a->data != null
+			memcpy(newData, a->data, (a->length - 1) * a->datumSize);
+		
+		a->data = newData
+	}
+}
+
+func array_push(a : ref-Array, v : ref) : void
+{
+	a->length = a->length + 1;
+	array_expand(a);
+	
+	memcpy(radd(a->data, (a->length - 1) * a->datumSize), v, a->datumSize);
+}
+
+func array_pop(a : ref-Array, v : ref) : void
+{
+	a->length = a->length - 1;
+	memcpy(v, radd(a->data, a->length * a->datumSize), a->datumSize);
+}
+
+func array_set(a : ref-Array, index : int, v : ref) : void
+{
+	memcpy(radd(a->data, index * a->datumSize), v, a->datumSize);
+}
+
+func array_get(a : ref-Array, index : int) : ref
+{
+	return radd(a->data, index * a->datumSize);
+}
+
+func destroy_array(a : ref-Array) : void
+{
+	free(a->data)
+	
+	a->data = null;
+	a->length = 0;
+	a->capacity = 0;
+}

@@ -22,6 +22,7 @@ void Tut_FlattenExpr(TutExpr* exp, TutArray* into)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_NULL:
 		case TUT_EXPR_INT:
 		case TUT_EXPR_FLOAT:
 		case TUT_EXPR_STR:

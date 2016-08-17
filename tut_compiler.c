@@ -318,6 +318,11 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_NULL:
+		{
+			exp->typetag = Tut_CreatePrimitiveTypetag("ref");
+		} break;
+
 		case TUT_EXPR_TRUE:
 		case TUT_EXPR_FALSE:
 		{
@@ -414,23 +419,16 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 			{
 				if (exp->binx.lhs->type != TUT_EXPR_VAR)
 				{
-					if (!Tut_CompareTypes(exp->binx.lhs->typetag, exp->binx.rhs->typetag))
-					{
-						// IMPORTANT: Autoconversion from 'str' to 'cstr'
-						if(exp->binx.lhs->typetag->type != TUT_TYPETAG_CSTR || exp->binx.rhs->typetag->type != TUT_TYPETAG_STR)
-							CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
-					}
+					// IMPORTANT: Autoconversion from 'str' to 'cstr'
+					if(!Tut_CanAssignTypes(exp->binx.rhs->typetag, exp->binx.lhs->typetag))
+						CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
 				}
 				else
 				{
 					assert(exp->binx.lhs->varx.decl);
 
-					if (!Tut_CompareTypes(exp->binx.lhs->varx.decl->typetag, exp->binx.rhs->typetag))
-					{
-						// IMPORTANT: Autoconversion from 'str' to 'cstr'
-						if (exp->binx.lhs->varx.decl->typetag->type != TUT_TYPETAG_CSTR || exp->binx.rhs->typetag->type != TUT_TYPETAG_STR)
-							CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->varx.decl->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
-					}
+					if (!Tut_CanAssignTypes(exp->binx.rhs->typetag, exp->binx.lhs->varx.decl->typetag))
+						CompilerError(exp, "Mismatched types in assignment operation (%s, %s).\n", Tut_TypetagRepr(exp->binx.lhs->varx.decl->typetag), Tut_TypetagRepr(exp->binx.rhs->typetag));
 				}
 			}
 		} break;
@@ -509,17 +507,10 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 			{
 				TutExpr* arg = argNode->value;
 				TutTypetag* tag = tagNode->value;
-				
-				if (arg->typetag->type == TUT_TYPETAG_VOID)
-					CompilerError(arg, "Attempted to pass void value in function call.\n");
 
-				if (!Tut_CompareTypes(arg->typetag, tag))
-				{
-					// IMPORTANT: Autoconversion from 'str' to 'cstr'
-					if (tag->type != TUT_TYPETAG_CSTR || arg->typetag->type != TUT_TYPETAG_STR)
-						CompilerError(arg, "Argument %d was supposed to be a '%s' but you passed a '%s'\n",
+				if (!Tut_CanAssignTypes(arg->typetag, tag))
+					CompilerError(arg, "Argument %d was supposed to be a '%s' but you passed a '%s'\n",
 							i + 1, Tut_TypetagRepr(tag), Tut_TypetagRepr(arg->typetag));
-				}
 
 				argNode = argNode->next;
 				tagNode = tagNode->next;
@@ -709,6 +700,11 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 			Tut_EmitOp(vm, TUT_OP_PUSH_FALSE);
 		} break;
 
+		case TUT_EXPR_NULL:
+		{
+			Tut_EmitOp(vm, TUT_OP_PUSH_NULL);
+		} break;
+
 		case TUT_EXPR_INT:
 		{
 			Tut_EmitPushInt(vm, exp->intVal);
@@ -841,6 +837,22 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 				{
 					if (exp->binx.op == TUT_TOK_LAND) Tut_EmitOp(vm, TUT_OP_LAND);
 					else if (exp->binx.op == TUT_TOK_LOR) Tut_EmitOp(vm, TUT_OP_LOR);
+					else if (exp->binx.op == TUT_TOK_EQUALS) Tut_EmitOp(vm, TUT_OP_BEQ);
+					else if (exp->binx.op == TUT_TOK_NEQUALS)
+					{
+						Tut_EmitOp(vm, TUT_OP_BEQ);
+						Tut_EmitOp(vm, TUT_OP_LNOT);
+					}
+					else CompilerError(exp, "Invalid binary operator '%s' for operation involving type '%s'.\n", Tut_TokenRepr(exp->binx.op), Tut_TypetagRepr(exp->binx.lhs->typetag));
+				}
+				else if (exp->binx.lhs->typetag->type == TUT_TYPETAG_REF)
+				{
+					if (exp->binx.op == TUT_TOK_EQUALS) Tut_EmitOp(vm, TUT_OP_REQ);
+					else if (exp->binx.op == TUT_TOK_NEQUALS)
+					{
+						Tut_EmitOp(vm, TUT_OP_REQ);
+						Tut_EmitOp(vm, TUT_OP_LNOT);
+					}
 					else CompilerError(exp, "Invalid binary operator '%s' for operation involving type '%s'.\n", Tut_TokenRepr(exp->binx.op), Tut_TypetagRepr(exp->binx.lhs->typetag));
 				}
 				else

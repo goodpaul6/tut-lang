@@ -10,7 +10,7 @@ func _main() : void
 	var r : ref = malloc(4);
 	var f : float = 10.0;
 
-	memcpy(r, &f, 4);
+	memcpy(r, cast(&f, ref), 4);
 
 	printf("%f\n", *cast(r, ref-float));
 }

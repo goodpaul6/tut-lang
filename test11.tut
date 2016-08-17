@@ -1,0 +1,33 @@
+module test
+
+import "array.tut"
+
+extern printf(format : cstr, ...) : void 
+extern tostr(s : cstr) : str
+extern substr(s : cstr, start : int, end : int) : str
+
+func _main() : void
+{
+	var a : Array = make_array(8);
+	
+	var s1 : cstr = "hello world";
+	var s2 : cstr = "this is using arrays created in tut-lang!";
+	var s3 : cstr = "there is no native array data structure yet.";
+	
+	array_push(&a, cast(&s1, ref));
+	array_push(&a, cast(&s2, ref));
+	array_push(&a, &s3);
+	
+	var i : int = 0;
+	
+	while i < a.length
+	{
+		var sref : ref-cstr = array_get(&a, i);
+		
+		printf("%s\n", *sref);
+		i = i + 1;
+	}
+	
+	destroy_array(&a);
+}
+

@@ -98,6 +98,7 @@ static TutToken GetToken(TutLexer* lexer)
 		if (strcmp(lexer->lexeme, "cast") == 0) return TUT_TOK_CAST;
 		if (strcmp(lexer->lexeme, "import") == 0) return TUT_TOK_IMPORT;
 		if (strcmp(lexer->lexeme, "module") == 0) return TUT_TOK_MODULE;
+		if (strcmp(lexer->lexeme, "null") == 0) return TUT_TOK_NULL;
 
 		return TUT_TOK_IDENT;
 	}

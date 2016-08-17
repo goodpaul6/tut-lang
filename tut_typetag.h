@@ -60,7 +60,9 @@ TutTypetag* Tut_CreatePrimitiveTypetag(const char* name);
 
 int Tut_GetTypetagSize(TutTypetag* tag);
 
-TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b); 
+TutBool Tut_CompareTypes(const TutTypetag* a, const TutTypetag* b);
+TutBool Tut_CanAssignTypes(const TutTypetag* from, const TutTypetag* to);
+
 const char* Tut_TypetagRepr(const TutTypetag* tag);
 
 void Tut_DeleteTypetag(TutTypetag* tag);

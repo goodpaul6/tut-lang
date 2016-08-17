@@ -84,6 +84,28 @@ static uint16_t ExtFree(TutVM* vm, const TutObject* args, uint16_t nargs)
 	return 0;
 }
 
+static uint16_t ExtTostr(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	Tut_PushString(vm, args[0].sv);
+	return 1;
+}
+
+static uint16_t ExtSubstr(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	const char* str = args[0].sv;
+	int start = args[1].iv;
+	int end = args[2].iv;
+	int len = end - start;
+
+	char* buf = Tut_Malloc(end - start + 1);
+	buf[len] = '\0';
+
+	memcpy(buf, str + start, len);
+
+	Tut_PushStringNoCopy(vm, buf);
+	return 1;
+}
+
 void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 {
 	Tut_BindExternFindIndex(module, vm, "printf", ExtPrintf);
@@ -92,4 +114,6 @@ void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 	Tut_BindExternFindIndex(module, vm, "memcpy", ExtMemcpy);
 	Tut_BindExternFindIndex(module, vm, "radd", ExtRadd);
 	Tut_BindExternFindIndex(module, vm, "free", ExtFree);
+	Tut_BindExternFindIndex(module, vm, "tostr", ExtTostr);
+	Tut_BindExternFindIndex(module, vm, "substr", ExtSubstr);
 }

@@ -21,6 +21,7 @@ void Tut_DestroyModule(TutModule* module);
 
 void Tut_InitModuleCache();
 TutModule* Tut_LoadModule(TutSymbolTable* table, const char* filename);
+void Tut_ClearModuleCache();
 void Tut_DestroyModuleCache();
 
 #endif

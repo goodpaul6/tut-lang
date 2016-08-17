@@ -8,6 +8,7 @@ typedef enum
 	TUT_OP_PUSH_INT,
 	TUT_OP_PUSH_FLOAT,
 	TUT_OP_PUSH_STR,
+	TUT_OP_PUSH_NULL,
 
 	TUT_OP_MAKEGLOBALREF,	// reference to global variable
 	TUT_OP_MAKELOCALREF,	// refernece to local variable
@@ -72,7 +73,9 @@ typedef enum
 	TUT_OP_FEQ,
 	TUT_OP_FNEG,
 
+	TUT_OP_BEQ,
 	TUT_OP_SEQ,
+	TUT_OP_REQ,
 
 	TUT_OP_CALL,
 

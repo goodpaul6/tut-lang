@@ -229,6 +229,13 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			DEBUG_CYCLE(TUT_OP_PUSH_STR, "%s", data);
 		} break;
 
+		case TUT_OP_PUSH_NULL:
+		{
+			Tut_PushRef(vm, NULL);
+
+			DEBUG_CYCLE(TUT_OP_PUSH_NULL, "");
+		} break;
+
 		case TUT_OP_MAKEGLOBALREF:
 		{
 			int32_t index = Tut_ReadInt32(vm->code, vm->pc);
@@ -236,7 +243,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 
 			Tut_PushRef(vm, &vm->globals[index]);
 
-			DEBUG_CYCLE(TUT_OP_MAKEGLOBALREF, "%d", index);
+			DEBUG_CYCLE(TUT_OP_MAKEGLOBALREF, "%d (%x)", index, (uintptr_t)(&vm->globals[index]));
 		} break;
 
 		case TUT_OP_MAKELOCALREF:
@@ -246,7 +253,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 
 			Tut_PushRef(vm, &vm->stack[vm->fp + index]);
 
-			DEBUG_CYCLE(TUT_OP_MAKELOCALREF, "%d", index);
+			DEBUG_CYCLE(TUT_OP_MAKELOCALREF, "%d (%x)", index, (uintptr_t)(&vm->stack[vm->fp + index]));
 		} break;
 
 		case TUT_OP_MAKEDYNAMICREF:
@@ -257,7 +264,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			TutObject* ref = Tut_PopRef(vm);
 			Tut_PushRef(vm, &ref[offset]);
 
-			DEBUG_CYCLE(TUT_OP_MAKEDYNAMICREF, "%d", offset);
+			DEBUG_CYCLE(TUT_OP_MAKEDYNAMICREF, "%d (%x)", offset, (uintptr_t)(&ref[offset]));
 		} break;
 
 		case TUT_OP_MAKEFUNC:
@@ -502,7 +509,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			memcpy(&vm->stack[vm->sp], &ref[offset], sizeof(TutObject) * numObjects);
 			vm->sp += numObjects;
 
-			DEBUG_CYCLE(TUT_OP_GETREFN, "%x, %d", (uint32_t)ref, numObjects);
+			DEBUG_CYCLE(TUT_OP_GETREFN, "%x, %d", (uintptr_t)ref, numObjects);
 		} break;
 
 		case TUT_OP_GETREF1:
@@ -514,7 +521,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			
 			Tut_Push(vm, &ref[offset]);
 
-			DEBUG_CYCLE(TUT_OP_GETREF1, "%x", (uint32_t)ref);
+			DEBUG_CYCLE(TUT_OP_GETREF1, "%x", (uintptr_t)ref);
 		} break;
 
 		case TUT_OP_SETREFN:
@@ -530,7 +537,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			memcpy(&ref[offset], &vm->stack[vm->sp - numObjects], sizeof(TutObject) * numObjects);
 			vm->sp -= numObjects;
 
-			DEBUG_CYCLE(TUT_OP_SETREFN, "%x, %d", (uint32_t)ref, numObjects);
+			DEBUG_CYCLE(TUT_OP_SETREFN, "%x, %d", (uintptr_t)ref, numObjects);
 		} break;
 
 		case TUT_OP_SETREF1:
@@ -541,7 +548,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			TutObject* ref = Tut_PopRef(vm);
 			Tut_Pop(vm, &ref[offset]);
 
-			DEBUG_CYCLE(TUT_OP_SETREFN, "%x", (uint32_t)ref);
+			DEBUG_CYCLE(TUT_OP_SETREFN, "%x", (uintptr_t)ref);
 		} break;
 
 #define BIN_OP_INT(name, op) 
@@ -710,6 +717,16 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			DEBUG_CYCLE(TUT_OP_FNEG, "%g", f);
 		} break;
 
+		case TUT_OP_BEQ:
+		{
+			TutBool b = Tut_PopBool(vm);
+			TutBool a = Tut_PopBool(vm);
+
+			Tut_PushBool(vm, a == b);
+
+			DEBUG_CYCLE(TUT_OP_BEQ, "%s, %s", a ? "true" : "false", b ? "true" : "false");
+		} break;
+
 		case TUT_OP_SEQ:
 		{
 			const char* b = Tut_PopString(vm);
@@ -718,6 +735,16 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 			Tut_PushBool(vm, strcmp(a, b) == 0);
 
 			DEBUG_CYCLE(TUT_OP_SEQ, "%s, %s", a, b);
+		} break;
+
+		case TUT_OP_REQ:
+		{
+			const void* b = Tut_PopRef(vm);
+			const void* a = Tut_PopRef(vm);
+
+			Tut_PushBool(vm, a == b);
+			
+			DEBUG_CYCLE(TUT_OP_REQ, "%x, %x", (uintptr_t)a, (uintptr_t)b);
 		} break;
 
 		case TUT_OP_CALL:
@@ -742,7 +769,7 @@ void Tut_ExecuteCycle(TutVM* vm, int debugFlags)
 				vm->pc = TUT_ARRAY_GET_VALUE(&vm->functionPcs, func.index, int32_t);
 				vm->fp = vm->sp;
 
-				DEBUG_CYCLE(TUT_OP_CALL, "%d", func.index, nargs);
+				DEBUG_CYCLE(TUT_OP_CALL, "%d, %d", func.index, nargs);
 			}
 			else
 			{

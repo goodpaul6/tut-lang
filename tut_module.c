@@ -66,6 +66,15 @@ TutModule* Tut_LoadModule(TutSymbolTable* table, const char* filename)
 	return module;
 }
 
+void Tut_ClearModuleCache()
+{
+	TUT_LIST_EACH(node, ModuleCache)
+		Tut_DestroyModule(node->value);
+	
+	ModuleCache.head = ModuleCache.tail = NULL;
+	ModuleCache.length = 0;
+}
+
 void Tut_DestroyModuleCache()
 {
 	TUT_LIST_EACH(node, ModuleCache)
