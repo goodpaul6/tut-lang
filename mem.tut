@@ -1,0 +1,50 @@
+// higher level memory management module for tut-lang
+module mem
+
+extern 
+{
+	malloc(size : int) : ref;
+	free(r : ref) : void;
+	radd(r : ref, offset : int) : ref;
+}
+
+struct LinearAllocator
+{
+	used : int;
+	size : int;
+	data : ref;
+};
+
+func make_linear_allocator(size : int) : LinearAllocator
+{
+	var a : LinearAllocator;
+	
+	a.used = 0;
+	a.size = size;
+	a.data = malloc(size);
+	
+	return a;
+}
+
+func linear_allocator_allocate(a : ref-LinearAllocator, size : int) : ref
+{
+	if a->used >= a->size
+		return null
+
+	var r : ref = radd(a->data, a->used);
+	a->used = a->used + size;
+	
+	return r;
+}
+
+func linear_allocator_reset(a : ref-LinearAllocator) : void
+{
+	a->used = 0;
+}
+
+func destroy_linear_allocator(a : ref-LinearAllocator) : void
+{
+	free(a->data);
+	a->used = 0;
+	a->size = 0;
+}

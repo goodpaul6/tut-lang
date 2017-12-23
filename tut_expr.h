@@ -31,13 +31,14 @@ typedef enum
 	TUT_EXPR_CALL,
 	
 	TUT_EXPR_FUNC,
-	TUT_EXPR_EXTERN,
 	
 	TUT_EXPR_RETURN,
 	TUT_EXPR_IF,
 	TUT_EXPR_WHILE,
 
 	TUT_EXPR_CAST,
+	TUT_EXPR_SIZEOF,
+
 	TUT_EXPR_STRUCT_DEF,
 } TutExprType;
 
@@ -64,6 +65,9 @@ typedef struct TutExpr
 			// once so it doesn't have to be looked up again in 
 			// ResolveTypes and CompileValue
 			TutFuncDecl* funcDecl;
+			// Same as above (cache typetag so it can be used with
+			// sizeof etc)
+			TutTypetag* typetag;
 		} varx;
 		
 		struct
@@ -102,11 +106,6 @@ typedef struct TutExpr
 		
 		struct
 		{
-			TutFuncDecl* decl;
-		} externx;
-
-		struct
-		{
 			TutFuncDecl* parent;
 			struct TutExpr* value;
 		} retx;
@@ -129,6 +128,11 @@ typedef struct TutExpr
 			struct TutExpr* value;
 			TutTypetag* typetag;
 		} castx;
+
+		struct
+		{
+			struct TutExpr* value;
+		} sizeofx;
 		
 		struct
 		{

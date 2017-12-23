@@ -1,0 +1,20 @@
+module test
+
+extern 
+{
+	printf(format : cstr, ...) : void;
+	tostr(s : cstr) : str;
+	substr(s : cstr, start : int, end : int) : str;
+	freestr(s : str) : void;
+}
+
+func _main() : void
+{
+	var s : str = tostr("hello world");
+	var h : str = substr(s, 0, 5);
+	
+	printf("%s\n", h);
+	
+	freestr(s);
+	freestr(h);
+}

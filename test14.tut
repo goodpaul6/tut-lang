@@ -1,0 +1,21 @@
+module test
+
+extern printf(format : cstr, ...) : void;
+
+var x : int;
+var p : Point;
+
+struct Point
+{
+	x : int;
+	y : int;
+}
+
+func _main() : void
+{
+	x = 10;
+	p.x = 10;
+	p.y = x;
+	
+	printf("(%., %.)", p.x, p.y);
+}

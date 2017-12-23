@@ -3,6 +3,8 @@
 
 typedef enum
 {
+	TUT_TOK_SIZEOF,
+
 	TUT_TOK_TRUE,
 	TUT_TOK_FALSE,
 

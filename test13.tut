@@ -1,0 +1,63 @@
+module test
+
+extern printf(format : cstr, ...) : void;
+
+struct Msg
+{
+	id : int;
+}
+
+struct MsgName
+{
+	id : int;
+	name : cstr;
+}
+
+struct MsgPos
+{
+	id : int;
+	x : float;
+	y : float;
+}
+
+func make_name_msg(name : cstr) : MsgName
+{
+	var m : MsgName;
+	
+	m.id = 0;
+	m.name = name;
+	
+	return m; 
+}
+
+func make_pos_msg(x : float, y : float) : MsgPos
+{
+	var m : MsgPos;
+	
+	m.id = 1;
+	m.x = x;
+	m.y = y;
+	
+	return m;
+}
+
+func print_msg(msg : ref-Msg) : void
+{
+	printf("msg->id = %i\n", msg->id);
+	if msg->id == 0
+		printf("msg->name = %s\n", cast(msg, ref-MsgName)->name);
+	else if msg->id == 1
+	{
+		var m : ref-MsgPos = cast(msg, ref-MsgPos);
+		printf("msg->x = %f, msg->y = %f\n", m->x, m->y);
+	}
+}
+
+func _main() : void
+{
+	var nm : MsgName = make_name_msg("test");
+	var pm : MsgPos = make_pos_msg(10.0, 20.0);
+	
+	print_msg(cast(&nm, ref-Msg));
+	print_msg(cast(&pm, ref-Msg));
+}

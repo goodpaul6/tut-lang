@@ -61,15 +61,16 @@ void Tut_PushString(TutVM* vm, const char* string);
 // Does not make a copy
 void Tut_PushStringNoCopy(TutVM* vm, const char* string);
 
-void Tut_PushRef(TutVM* vm, void* ref);
-
+void Tut_PushRef(TutVM* vm, TutObject* ref);
+void Tut_PushPtr(TutVM* vm, void* ptr);
 void Tut_PushFunc(TutVM* vm, TutBool isExtern, int32_t index);
 
 TutBool Tut_PopBool(TutVM* vm);
 int32_t Tut_PopInt(TutVM* vm);
 float Tut_PopFloat(TutVM* vm);
 const char* Tut_PopString(TutVM* vm);
-void* Tut_PopRef(TutVM* vm);
+TutObject* Tut_PopRef(TutVM* vm);
+void* Tut_PopPtr(TutVM* vm);
 TutFunctionObject Tut_PopFunc(TutVM* vm);
 
 void Tut_BindExtern(TutVM* vm, uint32_t index, const char* name, TutVMExternFunction ext);

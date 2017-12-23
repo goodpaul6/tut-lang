@@ -1,2 +1,6 @@
 *.VC.opendb
-*.sdf
+*.sdfx64/* 
+.vs* 
+x64* 
+Debug* 
+Release* 

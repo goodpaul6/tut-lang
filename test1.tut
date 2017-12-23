@@ -1,6 +1,6 @@
 module test
 
-extern printf(format : cstr, ...) : void
+extern printf(format : cstr, ...) : void;
 
 func fact(n : int) : int
 {

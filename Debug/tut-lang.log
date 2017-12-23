@@ -1,5 +1,0 @@
-﻿  tut_module.c
-c:\users\apaar\desktop\dev\tut\tut_typetag.h(46): warning C4201: nonstandard extension used: nameless struct/union
-c:\users\apaar\desktop\dev\tut\tut_module.c(36): warning C4100: 'module': unreferenced formal parameter
-  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.exe
-  tut-lang.vcxproj -> C:\Users\Apaar\Desktop\Dev\Tut\Debug\tut-lang.pdb (Partial PDB)

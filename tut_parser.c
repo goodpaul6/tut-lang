@@ -1,13 +1,19 @@
 #include <stdarg.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "tut_parser.h"
 #include "tut_expr.h"
 
 static void ParseError(TutModule* module, const char* format, ...)
 {
-	fprintf(stderr, "Error (%s, %i): ", module->name, module->lexer.context.line);
-	
+	char* lineEnd = strchr(module->lexer.context.lineStart, '\n');
+	if (lineEnd)
+		fprintf(stderr, "%.*s\n", (int)(lineEnd - module->lexer.context.lineStart), module->lexer.context.lineStart);
+	else
+		fprintf(stderr, "%s\n", module->lexer.context.lineStart);
+	fprintf(stderr, "Error (%s, %i): ", module->lexer.context.filename, module->lexer.context.line);
+
 	va_list args;
 	va_start(args, format);
 	
@@ -28,6 +34,12 @@ static void EatToken(TutModule* module, TutToken token)
 {
 	ExpectToken(module, token);
 	Tut_GetToken(&module->lexer);
+}
+
+static void SkipSemicolon(TutModule* module)
+{
+	if (module->lexer.curTok == TUT_TOK_SEMICOLON)
+		Tut_GetToken(&module->lexer);
 }
 
 static TutExpr* ParseExpr(TutModule* module);
@@ -158,6 +170,7 @@ static TutExpr* ParseIdent(TutModule* module)
 	exp->varx.name = Tut_Strdup(module->lexer.lexeme);
 	exp->varx.decl = Tut_GetVarDecl(module->symbolTable, module->lexer.lexeme, -1);
 	exp->varx.funcDecl = NULL;
+	exp->varx.typetag = NULL;
 
 	Tut_GetToken(&module->lexer);
 	
@@ -226,23 +239,18 @@ static TutExpr* ParseFunc(TutModule* module)
 	return exp;
 }
 
-static TutExpr* ParseExtern(TutModule* module)
+static void ParseExternDecl(TutModule* module)
 {
-	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_EXTERN, &module->lexer.context);
-	Tut_GetToken(&module->lexer);
-
-	ExpectToken(module, TUT_TOK_IDENT);
-
 	TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, module->lexer.lexeme);
 
 	if (!decl)
 	{
-		exp->externx.decl = Tut_DeclareExtern(module->symbolTable, module->lexer.lexeme);
-		exp->externx.decl->typetag = Tut_CreatePrimitiveTypetag("func");
-		
+		decl = Tut_DeclareExtern(module->symbolTable, module->lexer.lexeme);
+		decl->typetag = Tut_CreatePrimitiveTypetag("func");
+
 		Tut_GetToken(&module->lexer);
 
-		Tut_PushCurFuncDecl(module->symbolTable, exp->externx.decl);
+		Tut_PushCurFuncDecl(module->symbolTable, decl);
 
 		EatToken(module, TUT_TOK_OPENPAREN);
 
@@ -250,16 +258,16 @@ static TutExpr* ParseExtern(TutModule* module)
 		{
 			if (module->lexer.curTok == TUT_TOK_ELLIPSIS)
 			{
-				exp->externx.decl->hasVarargs = TUT_TRUE;
-				exp->externx.decl->typetag->func.hasVarargs = TUT_TRUE;
-				
+				decl->hasVarargs = TUT_TRUE;
+				decl->typetag->func.hasVarargs = TUT_TRUE;
+
 				Tut_GetToken(&module->lexer);
 
 				if (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
 					ParseError(module, "Expected ')' after '...' but received '%s'\n", Tut_TokenRepr(module->lexer.curTok));
 				break;
 			}
-		
+
 			ExpectToken(module, TUT_TOK_IDENT);
 
 			char* name = Tut_Strdup(module->lexer.lexeme);
@@ -272,7 +280,7 @@ static TutExpr* ParseExtern(TutModule* module)
 			Tut_DeclareArgument(module->symbolTable, name, tag);
 			Tut_Free(name);
 
-			Tut_ListAppend(&exp->externx.decl->typetag->func.args, tag);
+			Tut_ListAppend(&decl->typetag->func.args, tag);
 
 			if (module->lexer.curTok == TUT_TOK_COMMA)
 				Tut_GetToken(&module->lexer);
@@ -283,18 +291,16 @@ static TutExpr* ParseExtern(TutModule* module)
 
 		EatToken(module, TUT_TOK_COLON);
 
-		exp->externx.decl->typetag->func.ret = ParseType(module);
+		decl->typetag->func.ret = ParseType(module);
 
 		Tut_PopCurFuncDecl(module->symbolTable);
 	}
 	else
 	{
-		exp->externx.decl = decl;
-
 		Tut_GetToken(&module->lexer);
 
 		EatToken(module, TUT_TOK_OPENPAREN);
-		
+
 		while (module->lexer.curTok != TUT_TOK_CLOSEPAREN)
 		{
 			if (module->lexer.curTok == TUT_TOK_ELLIPSIS)
@@ -309,7 +315,7 @@ static TutExpr* ParseExtern(TutModule* module)
 			EatToken(module, TUT_TOK_COLON);
 
 			TutTypetag* tag = ParseType(module);
-			
+
 			// Discard type
 			Tut_DeleteTypetag(tag);
 
@@ -320,7 +326,7 @@ static TutExpr* ParseExtern(TutModule* module)
 		}
 
 		Tut_GetToken(&module->lexer);
-		
+
 		EatToken(module, TUT_TOK_COLON);
 
 		TutTypetag* tag = ParseType(module);
@@ -329,7 +335,28 @@ static TutExpr* ParseExtern(TutModule* module)
 		Tut_DeleteTypetag(tag);
 	}
 
-	return exp;
+	assert(decl);
+}
+
+static void HandleExtern(TutModule* module)
+{
+	Tut_GetToken(&module->lexer);
+
+	if (module->lexer.curTok == TUT_TOK_OPENCURLY)
+	{
+		Tut_GetToken(&module->lexer);
+
+		while (module->lexer.curTok != TUT_TOK_CLOSECURLY)
+		{
+			ParseExternDecl(module);
+			if (module->lexer.curTok == TUT_TOK_SEMICOLON)
+				Tut_GetToken(&module->lexer);
+		}
+
+		Tut_GetToken(&module->lexer);
+	}
+	else
+		ParseExternDecl(module);
 }
 
 static TutExpr* ParseReturn(TutModule* module)
@@ -379,8 +406,7 @@ static TutExpr* ParseBlock(TutModule* module)
 	while(module->lexer.curTok != TUT_TOK_CLOSECURLY)
 	{
 		TutExpr* bodyExp = ParseExpr(module);
-		if(module->lexer.curTok == TUT_TOK_SEMICOLON)
-			Tut_GetToken(&module->lexer);
+		SkipSemicolon(module);
 		
 		Tut_ListAppend(&exp->blockList, bodyExp);
 	}
@@ -533,11 +559,28 @@ static void HandleImport(TutModule* module)
 	Tut_GetToken(&module->lexer);
 }
 
+static TutExpr* ParseSizeof(TutModule* module)
+{
+	TutExpr* exp = Tut_CreateExpr(TUT_EXPR_SIZEOF, &module->lexer.context);
+
+	Tut_GetToken(&module->lexer);
+	
+	EatToken(module, TUT_TOK_OPENPAREN);
+
+	exp->sizeofx.value = ParseExpr(module);
+
+	EatToken(module, TUT_TOK_CLOSEPAREN);
+
+	return exp;
+}
+
 static TutExpr* ParseFactor(TutModule* module)
 {
 	switch(module->lexer.curTok)
 	{
-		case TUT_TOK_IMPORT: HandleImport(module); return ParseFactor(module);
+		case TUT_TOK_SIZEOF: return ParseSizeof(module);
+
+		case TUT_TOK_IMPORT: HandleImport(module); return NULL;
 
 		case TUT_TOK_TRUE: Tut_GetToken(&module->lexer); return Tut_CreateExpr(TUT_EXPR_TRUE, &module->lexer.context);
 		case TUT_TOK_FALSE: Tut_GetToken(&module->lexer); return Tut_CreateExpr(TUT_EXPR_FALSE, &module->lexer.context);
@@ -561,7 +604,7 @@ static TutExpr* ParseFactor(TutModule* module)
 
 		case TUT_TOK_FUNC: return ParseFunc(module);
 		
-		case TUT_TOK_EXTERN: return ParseExtern(module);
+		case TUT_TOK_EXTERN: HandleExtern(module); return NULL;
 
 		case TUT_TOK_RETURN: return ParseReturn(module);
 		
@@ -642,6 +685,9 @@ static int GetTokenPrec(TutToken op)
 
 static TutExpr* ParseBinRhs(TutModule* module, TutExpr* lhs, int eprec)
 {
+	if (!lhs)
+		return NULL;
+
 	while(TUT_TRUE)
 	{
 		int prec = GetTokenPrec(module->lexer.curTok);
@@ -688,9 +734,8 @@ void Tut_ParseModule(TutModule* module)
 	while(module->lexer.curTok != TUT_TOK_EOF)
 	{
 		TutExpr* exp = ParseExpr(module);
-		Tut_ListAppend(&module->exprList, exp);
-		
-		if(module->lexer.curTok == TUT_TOK_SEMICOLON)
-			Tut_GetToken(&module->lexer);
+		if(exp)
+			Tut_ListAppend(&module->exprList, exp);
+		SkipSemicolon(module);
 	}
 }

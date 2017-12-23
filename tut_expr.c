@@ -29,7 +29,6 @@ void Tut_FlattenExpr(TutExpr* exp, TutArray* into)
 		case TUT_EXPR_STRUCT_DEF:
 		case TUT_EXPR_VAR:
 		case TUT_EXPR_IDENT:
-		case TUT_EXPR_EXTERN:
 		{
 			// No sub expressions
 		} break;

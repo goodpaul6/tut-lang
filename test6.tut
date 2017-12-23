@@ -1,16 +1,18 @@
 module test
 
-extern printf(format : cstr, ...) : void
-extern malloc(size : int) : ref
-extern memcpy(dest : ref, src : ref, size : int) : ref
-extern free(r : ref) : void
+extern 
+{
+	printf(format : cstr, ...) : void
+	malloc(size : int) : ref
+	memcpy(dest : ref, src : ref, size : int) : ref
+}
 
 func _main() : void
 {
-	var r : ref = malloc(4);
+	var r : ref = malloc(16);
 	var f : float = 10.0;
 
-	memcpy(r, cast(&f, ref), 4);
+	memcpy(r, cast(&f, ref), 16);
 
 	printf("%f\n", *cast(r, ref-float));
 }

@@ -12,6 +12,7 @@ static const char* Names[TUT_TYPETAG_COUNT] =
 	"str",
 	"cstr",
 	"ref",
+	"ptr",
 	"func",
 	NULL
 };

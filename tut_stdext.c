@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
 
 #include "tut_stdext.h"
 #include "tut_compiler.h"
@@ -31,6 +32,27 @@ static uint16_t ExtPrintf(TutVM* vm, const TutObject* args, uint16_t nargs)
 				const char* str = args[argIndex++].sv;
 				printf("%s", str);
 			}
+			else if (str[i] == '.')
+			{
+				const TutObject* obj = &args[argIndex++];
+
+				switch (obj->type)
+				{
+					case TUT_OBJECT_BOOL: printf("%s", obj->bv ? "true" : "false"); break;
+					case TUT_OBJECT_INT: printf("%i", obj->iv); break;
+					case TUT_OBJECT_FLOAT: printf("%f", obj->fv); break;
+					case TUT_OBJECT_STR: case TUT_OBJECT_CSTR: printf("%s", obj->sv); break;
+					case TUT_OBJECT_FUNC: 
+					{
+						if (obj->func.isExtern)
+							printf("extern %s [%i]", TUT_ARRAY_GET_VALUE(&vm->externNames, obj->func.index, const char*), obj->func.index);
+						else
+							printf("function [%i]", obj->func.index);
+					} break;
+					case TUT_OBJECT_REF: printf("ref %" PRIdPTR, (uintptr_t)obj->ref); break;
+					case TUT_OBJECT_PTR: printf("ptr %" PRIdPTR, (uintptr_t)obj->ref); break;
+				}
+			}
 		}
 		else
 			putc(str[i], stdout);
@@ -41,8 +63,7 @@ static uint16_t ExtPrintf(TutVM* vm, const TutObject* args, uint16_t nargs)
 
 static uint16_t ExtStrlen(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
-	const char* str = args[0].sv;
-	Tut_PushInt(vm, (int)strlen(str));
+	Tut_PushInt(vm, (int32_t)strlen(args[0].sv));
 
 	return 1;
 }
@@ -86,7 +107,7 @@ static uint16_t ExtFree(TutVM* vm, const TutObject* args, uint16_t nargs)
 
 static uint16_t ExtTostr(TutVM* vm, const TutObject* args, uint16_t nargs)
 {
-	Tut_PushString(vm, args[0].sv);
+	Tut_PushString(vm, Tut_Strdup(args[0].sv));
 	return 1;
 }
 
@@ -106,8 +127,24 @@ static uint16_t ExtSubstr(TutVM* vm, const TutObject* args, uint16_t nargs)
 	return 1;
 }
 
+static uint16_t ExtFreestr(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	char* str = args[0].sv;
+	assert(str);
+
+	Tut_Free(str);
+	return 0;
+}
+
+static uint16_t ExtGettype(TutVM* vm, const TutObject* args, uint16_t nargs)
+{
+	Tut_PushInt(vm, args[0].type);
+	return 1;
+}
+
 void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 {
+	Tut_BindExternFindIndex(module, vm, "gettype", ExtGettype);
 	Tut_BindExternFindIndex(module, vm, "printf", ExtPrintf);
 	Tut_BindExternFindIndex(module, vm, "strlen", ExtStrlen);
 	Tut_BindExternFindIndex(module, vm, "malloc", ExtMalloc);
@@ -116,4 +153,5 @@ void TutStdExt_BindAll(TutModule* module, TutVM* vm)
 	Tut_BindExternFindIndex(module, vm, "free", ExtFree);
 	Tut_BindExternFindIndex(module, vm, "tostr", ExtTostr);
 	Tut_BindExternFindIndex(module, vm, "substr", ExtSubstr);
+	Tut_BindExternFindIndex(module, vm, "freestr", ExtFreestr);
 }

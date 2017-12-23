@@ -141,6 +141,18 @@ TutTypetag* Tut_DefineType(TutSymbolTable* table, const char* name)
 	return tag;
 }
 
+TutTypetag* Tut_GetType(TutSymbolTable* table, const char* name)
+{
+	TUT_LIST_EACH(node, table->usertypes)
+	{
+		TutTypetag* tag = node->value;
+		if (strcmp(tag->user.name, name) == 0)
+			return tag;
+	}
+
+	return NULL;
+}
+
 void Tut_PushCurFuncDecl(TutSymbolTable* table, TutFuncDecl* decl)
 {
 	decl->parent = table->curFunc;

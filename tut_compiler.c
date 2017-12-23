@@ -218,9 +218,13 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		case TUT_EXPR_INT:
 		case TUT_EXPR_FLOAT:
 		case TUT_EXPR_STR:
-		case TUT_EXPR_EXTERN:
 		case TUT_EXPR_STRUCT_DEF:
 		{
+		} break;
+
+		case TUT_EXPR_SIZEOF:
+		{
+			ResolveSymbols(module, exp->sizeofx.value);
 		} break;
 
 		case TUT_EXPR_CAST:
@@ -243,8 +247,20 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 				{
 					TutFuncDecl* decl = Tut_GetFuncDecl(module->symbolTable, exp->varx.name);
 					if (!decl)
-						CompilerError(exp, "Attempted to access undeclared variable '%s'.\n", exp->varx.name);
-					exp->varx.funcDecl = decl;
+					{
+						TutTypetag* tag = Tut_CreatePrimitiveTypetag(exp->varx.name);
+						if (!tag)
+						{
+							tag = Tut_GetType(module->symbolTable, exp->varx.name);
+							if (!tag)
+								CompilerError(exp, "Attempted to access undeclared variable '%s'.\n", exp->varx.name);
+							exp->varx.typetag = tag;
+						}
+						else
+							exp->varx.typetag = tag;
+					}
+					else
+						exp->varx.funcDecl = decl;
 				}
 			}
 		} break;
@@ -318,6 +334,12 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_SIZEOF:
+		{
+			ResolveTypes(module, exp->sizeofx.value);
+			exp->typetag = Tut_CreatePrimitiveTypetag("int");
+		} break;
+		
 		case TUT_EXPR_NULL:
 		{
 			exp->typetag = Tut_CreatePrimitiveTypetag("ref");
@@ -351,12 +373,14 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 
 		case TUT_EXPR_IDENT:
 		{
-			assert(exp->varx.decl || exp->varx.funcDecl);
+			assert(exp->varx.decl || exp->varx.funcDecl || exp->varx.typetag);
 
 			if (exp->varx.decl)
 				exp->typetag = exp->varx.decl->typetag;
-			else
+			else if (exp->varx.funcDecl)
 				exp->typetag = exp->varx.funcDecl->typetag;
+			else if (exp->varx.typetag)
+				exp->typetag = exp->varx.typetag;
 		} break;
 
 		case TUT_EXPR_UNARY:
@@ -562,11 +586,6 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 			
 			ResolveTypes(module, exp->funcx.body);
 		} break;
-
-		case TUT_EXPR_EXTERN:
-		{
-			exp->typetag = Tut_CreatePrimitiveTypetag("void");
-		} break;
 		
 		case TUT_EXPR_RETURN:
 		{
@@ -690,6 +709,12 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 
 	switch (exp->type)
 	{
+		case TUT_EXPR_SIZEOF:
+		{
+			assert(exp->sizeofx.value->typetag);
+			Tut_EmitPushInt(vm, Tut_GetTypetagSize(exp->sizeofx.value->typetag) * sizeof(TutObject));
+		} break;
+
 		case TUT_EXPR_TRUE:
 		{
 			Tut_EmitOp(vm, TUT_OP_PUSH_TRUE);
@@ -723,6 +748,10 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 		case TUT_EXPR_IDENT:
 		{
 			assert(exp->typetag);
+
+			if (exp->varx.typetag)
+				CompilerError(exp, "Cannot use type '%s' as value.\n", Tut_TypetagRepr(exp->varx.typetag));
+
 			assert((exp->varx.decl && exp->varx.decl->index != TUT_VAR_DECL_INDEX_UNDEFINED) || 
 				exp->varx.funcDecl);
 			
@@ -989,13 +1018,6 @@ static void CompileStatement(TutModule* module, TutVM* vm, TutExpr* exp)
 			CompileStatement(module, vm, exp->funcx.body);
 			
 			Tut_EmitOp(vm, TUT_OP_RET);
-		} break;
-
-		case TUT_EXPR_EXTERN:
-		{
-			// Make room for an extern to be bound later
-			TutVMExternFunction empty = NULL;
-			Tut_ArrayPush(&vm->externs, &empty);
 		} break;
 
 		case TUT_EXPR_CALL:

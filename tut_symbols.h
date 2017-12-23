@@ -61,6 +61,8 @@ TutTypetag* Tut_RegisterType(TutSymbolTable* table, const char* name);
 // otherwise, the previously declared typetag is returned
 TutTypetag* Tut_DefineType(TutSymbolTable* table, const char* name);
 
+TutTypetag* Tut_GetType(TutSymbolTable* table, const char* name);
+
 void Tut_PushCurFuncDecl(TutSymbolTable* table, TutFuncDecl* decl);
 void Tut_PopCurFuncDecl(TutSymbolTable* table);
 

@@ -36,7 +36,7 @@ func array_get(a : ref-Array, index : int) : ref
 
 func _main() : void
 {
-	var ints : Array = make_array(10, 8);
+	var ints : Array = make_array(10, 16);
 	
 	var i : int = 0;
 		

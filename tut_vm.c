@@ -53,6 +53,8 @@ void Tut_Pop(TutVM* vm, TutObject* object)
 void Tut_PushBool(TutVM* vm, TutBool value)
 {
 	TutObject object;
+
+	object.type = TUT_OBJECT_BOOL;
 	object.bv = value;
 
 	Tut_Push(vm, &object);
@@ -61,6 +63,8 @@ void Tut_PushBool(TutVM* vm, TutBool value)
 void Tut_PushInt(TutVM* vm, int32_t value)
 {
 	TutObject object;
+
+	object.type = TUT_OBJECT_INT;
 	object.iv = value;
 
 	Tut_Push(vm, &object);
@@ -69,6 +73,8 @@ void Tut_PushInt(TutVM* vm, int32_t value)
 void Tut_PushFloat(TutVM* vm, float value)
 {
 	TutObject object;
+
+	object.type = TUT_OBJECT_FLOAT;
 	object.fv = value;
 
 	Tut_Push(vm, &object);
@@ -77,6 +83,8 @@ void Tut_PushFloat(TutVM* vm, float value)
 void Tut_PushString(TutVM* vm, const char* string)
 {
 	TutObject object;
+
+	object.type = TUT_OBJECT_STR;
 	object.sv = Tut_Strdup(string);
 
 	Tut_Push(vm, &object);
@@ -85,15 +93,29 @@ void Tut_PushString(TutVM* vm, const char* string)
 void Tut_PushStringNoCopy(TutVM* vm, const char* string)
 {
 	TutObject object;
+	
+	object.type = TUT_OBJECT_CSTR;
 	object.sv = string;
 
 	Tut_Push(vm, &object);
 }
 
-void Tut_PushRef(TutVM* vm, void* ref)
+void Tut_PushRef(TutVM* vm, TutObject* ref)
 {
 	TutObject object;
+
+	object.type = TUT_OBJECT_REF;
 	object.ref = ref;
+
+	Tut_Push(vm, &object);
+}
+
+void Tut_PushPtr(TutVM* vm, void* ptr)
+{
+	TutObject object;
+
+	object.type = TUT_OBJECT_PTR;
+	object.ptr = ptr;
 
 	Tut_Push(vm, &object);
 }
@@ -102,6 +124,7 @@ void Tut_PushFunc(TutVM* vm, TutBool isExtern, int32_t index)
 {
 	TutObject object;
 
+	object.type = TUT_OBJECT_FUNC;
 	object.func.isExtern = isExtern;
 	object.func.index = index;
 
@@ -140,12 +163,20 @@ const char* Tut_PopString(TutVM* vm)
 	return object.sv;
 }
 
-void* Tut_PopRef(TutVM* vm)
+TutObject* Tut_PopRef(TutVM* vm)
 {
 	TutObject object;
 	Tut_Pop(vm, &object);
 
 	return object.ref;
+}
+
+void* Tut_PopPtr(TutVM* vm)
+{
+	TutObject object;
+	Tut_Pop(vm, &object);
+
+	return object.ptr;
 }
 
 TutFunctionObject Tut_PopFunc(TutVM* vm)

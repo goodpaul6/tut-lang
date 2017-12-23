@@ -1,0 +1,34 @@
+module test
+
+import "mem.tut"
+
+extern printf(format : cstr, ...) : void;
+
+func _main() : void
+{
+	var a : LinearAllocator = make_linear_allocator(sizeof(int) * 1024);
+	
+	var values : ref-int = linear_allocator_allocate(&a, sizeof(int) * 20);
+	
+	var i : int = 0;
+	
+	while i < 20
+	{
+		var value : ref-int = radd(values, sizeof(int) * i);
+		*value = i * 2;
+		
+		i = i + 1;
+	}
+	
+	i = 0;
+	
+	while i < 20
+	{
+		var value : ref-int = radd(values, sizeof(int) * i);
+		
+		printf("%.\n", *value);
+		i = i + 1;
+	}
+	
+	destroy_linear_allocator(&a);
+}
