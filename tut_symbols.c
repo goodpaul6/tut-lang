@@ -99,11 +99,12 @@ TutVarDecl* Tut_DeclareVariable(TutSymbolTable* table, const char* name, TutType
 	TutVarDecl* decl = MakeVarDecl(name, typetag);
 
 	decl->parent = table->curFunc;
+	decl->outOfScope = TUT_FALSE;
 
 	if(table->curFunc)
 	{
 		decl->scope = table->curScope;
-		
+
 		Tut_ListAppend(&table->curFunc->locals, decl);
 	}
 	else
@@ -153,6 +154,27 @@ TutTypetag* Tut_GetType(TutSymbolTable* table, const char* name)
 	return NULL;
 }
 
+void Tut_PushScope(TutSymbolTable* table)
+{
+	++table->curScope;
+}
+
+void Tut_PopScope(TutSymbolTable* table)
+{
+	if (table->curFunc)
+	{
+		// Set the variables which occupied this scope to be out of scope
+		TUT_LIST_EACH(node, table->curFunc->locals)
+		{
+			TutVarDecl* decl = node->value;
+			if (!decl->outOfScope && decl->scope == table->curScope)
+				decl->outOfScope = TUT_TRUE;
+		}
+	}
+
+	--table->curScope;
+}
+
 void Tut_PushCurFuncDecl(TutSymbolTable* table, TutFuncDecl* decl)
 {
 	decl->parent = table->curFunc;
@@ -178,7 +200,7 @@ TutVarDecl* Tut_GetVarDecl(TutSymbolTable* table, const char* name, int scope)
 			TutVarDecl* varDecl = node->value;
 			for(int i = scope; i >= 0; --i)
 			{
-				if(varDecl->scope == i && strcmp(varDecl->name, name) == 0)
+				if(!varDecl->outOfScope && varDecl->scope == i && strcmp(varDecl->name, name) == 0)
 					return varDecl;
 			}
 		}

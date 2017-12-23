@@ -8,14 +8,21 @@ func _main() : void
 {
 	var a : LinearAllocator = make_linear_allocator(sizeof(int) * 1024);
 	
+	printf("Currently used: %i.\n", a.used);
+	printf("sizeof(int): %i.\n", sizeof(int));
+
 	var values : ref-int = linear_allocator_allocate(&a, sizeof(int) * 20);
 	
+	printf("Used after allocating 20 integers: %i.\n", a.used);
+
 	var i : int = 0;
 	
 	while i < 20
 	{
 		var value : ref-int = radd(values, sizeof(int) * i);
-		*value = i * 2;
+		printf("Setting %. to %..\n", value, i);
+
+		*value = i;
 		
 		i = i + 1;
 	}
@@ -25,6 +32,7 @@ func _main() : void
 	while i < 20
 	{
 		var value : ref-int = radd(values, sizeof(int) * i);
+		printf("Getting value in %..\n", value);
 		
 		printf("%.\n", *value);
 		i = i + 1;

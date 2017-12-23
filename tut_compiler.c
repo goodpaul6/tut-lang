@@ -219,12 +219,8 @@ static void ResolveSymbols(TutModule* module, TutExpr* exp)
 		case TUT_EXPR_FLOAT:
 		case TUT_EXPR_STR:
 		case TUT_EXPR_STRUCT_DEF:
-		{
-		} break;
-
 		case TUT_EXPR_SIZEOF:
 		{
-			ResolveSymbols(module, exp->sizeofx.value);
 		} break;
 
 		case TUT_EXPR_CAST:
@@ -336,7 +332,6 @@ static void ResolveTypes(TutModule* module, TutExpr* exp)
 	{
 		case TUT_EXPR_SIZEOF:
 		{
-			ResolveTypes(module, exp->sizeofx.value);
 			exp->typetag = Tut_CreatePrimitiveTypetag("int");
 		} break;
 		
@@ -711,8 +706,8 @@ static void CompileValue(TutModule* module, TutVM* vm, TutExpr* exp)
 	{
 		case TUT_EXPR_SIZEOF:
 		{
-			assert(exp->sizeofx.value->typetag);
-			Tut_EmitPushInt(vm, Tut_GetTypetagSize(exp->sizeofx.value->typetag) * sizeof(TutObject));
+			assert(exp->sizeofx.typetag);
+			Tut_EmitPushInt(vm, Tut_GetTypetagSize(exp->sizeofx.typetag) * sizeof(TutObject));
 		} break;
 
 		case TUT_EXPR_TRUE:

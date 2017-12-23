@@ -197,7 +197,7 @@ static TutExpr* ParseFunc(TutModule* module)
 	Tut_GetToken(&module->lexer);
 
 	Tut_PushCurFuncDecl(module->symbolTable, exp->funcx.decl);
-	++module->symbolTable->curScope;
+	Tut_PushScope(module->symbolTable);
 
 	EatToken(module, TUT_TOK_OPENPAREN);
 
@@ -232,7 +232,7 @@ static TutExpr* ParseFunc(TutModule* module)
 	exp->funcx.decl->typetag->func.ret = ParseType(module);
 	exp->funcx.body = ParseStatement(module);
 	
-	--module->symbolTable->curScope;
+	Tut_PopScope(module->symbolTable);
 
 	Tut_PopCurFuncDecl(module->symbolTable);
 	
@@ -401,7 +401,7 @@ static TutExpr* ParseBlock(TutModule* module)
 	
 	Tut_GetToken(&module->lexer);
 
-	++module->symbolTable->curScope;
+	Tut_PushScope(module->symbolTable);
 
 	while(module->lexer.curTok != TUT_TOK_CLOSECURLY)
 	{
@@ -411,7 +411,7 @@ static TutExpr* ParseBlock(TutModule* module)
 		Tut_ListAppend(&exp->blockList, bodyExp);
 	}
 
-	--module->symbolTable->curScope;
+	Tut_PopScope(module->symbolTable);
 
 	Tut_GetToken(&module->lexer);
 
@@ -567,7 +567,7 @@ static TutExpr* ParseSizeof(TutModule* module)
 	
 	EatToken(module, TUT_TOK_OPENPAREN);
 
-	exp->sizeofx.value = ParseExpr(module);
+	exp->sizeofx.typetag = ParseType(module);
 
 	EatToken(module, TUT_TOK_CLOSEPAREN);
 

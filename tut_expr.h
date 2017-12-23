@@ -131,7 +131,7 @@ typedef struct TutExpr
 
 		struct
 		{
-			struct TutExpr* value;
+			struct TutTypetag* typetag;
 		} sizeofx;
 		
 		struct

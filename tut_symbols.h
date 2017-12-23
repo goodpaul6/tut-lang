@@ -32,6 +32,7 @@ typedef struct TutVarDecl
 	TutTypetag* typetag;
 	TutFuncDecl* parent;
 	
+	TutBool outOfScope;
 	int index, scope;
 	char* name;
 } TutVarDecl;
@@ -62,6 +63,9 @@ TutTypetag* Tut_RegisterType(TutSymbolTable* table, const char* name);
 TutTypetag* Tut_DefineType(TutSymbolTable* table, const char* name);
 
 TutTypetag* Tut_GetType(TutSymbolTable* table, const char* name);
+
+void Tut_PushScope(TutSymbolTable* table);
+void Tut_PopScope(TutSymbolTable* table);
 
 void Tut_PushCurFuncDecl(TutSymbolTable* table, TutFuncDecl* decl);
 void Tut_PopCurFuncDecl(TutSymbolTable* table);
